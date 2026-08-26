@@ -19,10 +19,11 @@ export type Json =
 /** Mirrors the check constraint on public.tenders_matched.status. */
 export type TenderStatus = 'new' | 'reviewed' | 'submitted' | 'expired'
 
-/** Return values of public.company_domain_status(). */
-export type CompanyDomainStatus =
+/** Values of the `status` key returned by public.company_signup_status(). */
+export type SignupStatus =
   | 'available'
-  | 'taken'
+  | 'join_existing'
+  | 'representative_exists'
   | 'not_company_domain'
   | 'invalid'
 
@@ -204,9 +205,13 @@ export type Database = {
     }
     Views: { [_ in never]: never }
     Functions: {
-      company_domain_status: {
+      company_signup_status: {
         Args: { p_domain: string }
-        Returns: CompanyDomainStatus
+        /**
+         * jsonb. Shape depends on `status`; parse it with parseSignupStatus in
+         * lib/signup.ts rather than trusting the keys.
+         */
+        Returns: Json
       }
       complete_onboarding: {
         Args: Record<PropertyKey, never>

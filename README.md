@@ -38,6 +38,11 @@ Migrations run in order:
 - `0001_init.sql`: the four tables, the trial trigger, RLS on everything.
 - `0002_signup_onboarding.sql`: the onboarding RPC, the domain status helper,
   and the blocked email domain list.
+- `0003_signup_gate.sql`: gates signup on an existing representative and
+  returns their contact details for the blocking message.
+- `0004_company_profile_writes.sql`: column level UPDATE grants on `companies`,
+  so a representative can write the matching profile but not `plan` or
+  `trial_ends_at`.
 
 If your CLI version rejects the `0001_` prefix, rename both files to 14-digit
 timestamp prefixes, keeping their relative order.
@@ -59,9 +64,14 @@ Signup will not complete until two things are set in the dashboard:
 app/                        Landing page and standing content pages
 app/signup/                 Signup form, plus the server action that runs it
 app/auth/callback/          Where the email confirmation link lands
-components/                 Shared header, footer, content page shell
+app/onboarding/             Matching profile form, and the action that saves it
+app/dashboard/              Trial-gated product area (layout.tsx holds the gate)
+app/upgrade/                Where the trial gate sends an expired account
+components/                 Shared header, footer, content page shell, app header
 lib/env.ts                  Reads and validates the environment
-lib/signup.ts               Signup field definitions and validation
+lib/company-profile.ts      Industry, sector, county and size lists, plus validation
+lib/signup.ts               Signup fields, validation, and status parsing
+lib/trial.ts                Trial window evaluation
 lib/url.ts                  Open redirect guard for ?next=
 lib/supabase/client.ts      Typed client for Client Components
 lib/supabase/server.ts      Typed client for Server Components / Actions / Routes
@@ -71,8 +81,9 @@ types/index.ts              Convenience aliases, import from `@/types`
 supabase/migrations/        SQL migrations
 ```
 
-Routes: `/`, `/signup`, `/about`, `/contact`, `/careers`, `/privacy`, `/terms`,
-`/security`, and the `/auth/callback` handler.
+Routes: `/`, `/signup`, `/onboarding`, `/dashboard`, `/upgrade`, `/about`,
+`/contact`, `/careers`, `/privacy`, `/terms`, `/security`, and the
+`/auth/callback` handler.
 
 Pick the Supabase client by where the code runs:
 
@@ -103,22 +114,112 @@ import { createClient } from '@/lib/supabase/client'
 
 ## How signup works
 
-1. The form collects name, company email, password, company name, industry,
-   region and size. `lib/signup.ts` validates it, and the same function runs
-   again inside the server action, since a crafted request can send anything.
-2. The action calls `company_domain_status(domain)` before creating anything, so
-   a company that already has an account, or a consumer email provider, is
-   rejected up front rather than after the user has confirmed their email.
+Email and password, via Supabase Auth. Signup collects only the account details
+(name, company email, password, company name). The matching profile is collected
+at `/onboarding`, which is the sole owner of those columns.
+
+1. The form collects name, company email, password and company name.
+   `lib/signup.ts` validates it, and the same function runs again inside the
+   server action, since a crafted request can send anything.
+2. The action derives the domain from the email and calls
+   `company_signup_status(domain)` before creating anything. The five outcomes:
+
+   | Status | What happens |
+   | --- | --- |
+   | `available` | Proceed; a new company will be created. |
+   | `join_existing` | Proceed; a company row exists for the domain but has no representative, so this signup claims it. |
+   | `representative_exists` | **Blocked.** The form shows who to ask for access, using the returned name and email. |
+   | `not_company_domain` | Blocked inline on the email field. |
+   | `invalid` | Blocked inline on the email field. |
+
 3. `auth.signUp` is called with the company details in user metadata, so nothing
    needs storing between signup and confirmation.
 4. The confirmation link lands on `/auth/callback`, which exchanges it for a
-   session and then calls `complete_onboarding()`.
-5. That RPC creates the `companies` and `representatives` rows together, taking
-   the domain from the **verified** email address rather than any form field. It
-   is idempotent, so confirming twice does not create a second company.
+   session, calls `complete_onboarding()`, and redirects to `/onboarding`.
+5. `complete_onboarding()` creates or claims the company and registers the
+   representative, taking the domain from the **verified** email address rather
+   than any form field. It is idempotent, and it re-checks the gate under a row
+   lock so two people claiming one company at the same moment cannot both win.
 
-On success the callback redirects to `/`. Point it at a dashboard once one
-exists, via the `next` query parameter (guarded by `lib/url.ts`).
+If email confirmations are off, `signUp` returns a live session, so the action
+finishes onboarding immediately and the form redirects to `/onboarding` itself.
+
+### The blocking message discloses a colleague email
+
+`company_signup_status()` returns the existing representative name and email to
+an **unauthenticated** caller, because the blocking message has to name somebody
+to contact. That makes it an email lookup for any domain with an account.
+
+It is a deliberate trade for the signup experience. If harvesting is a concern,
+the options are: rate limit the endpoint at the edge, put a CAPTCHA in front of
+the form, or return only the company name and route access requests through
+support instead of naming a person.
+
+## Onboarding: the matching profile
+
+`/onboarding` collects the four columns the tender matching agent will read, and
+the form field names are the column names, deliberately: `industry`,
+`sectors_of_interest`, `region`, `company_size`. No camel casing on the way in
+and no mapping layer in the middle.
+
+`lib/company-profile.ts` holds the reference lists and the validation:
+
+| Field | Column | Source |
+| --- | --- | --- |
+| Industry | `industry` | `INDUSTRIES`, single select |
+| Sectors | `sectors_of_interest` | `SECTORS`, 1 to `MAX_SECTORS` (8) checkboxes, stored as `text[]` |
+| County | `region` | `COUNTIES`, the 47 counties of Kenya in First Schedule order |
+| Company size | `company_size` | `COMPANY_SIZES`, single select |
+
+Every value is validated against its list on the server, not merely checked for
+being non-empty, because the form posts to a server action that any client can
+call. The page prefills from whatever is already stored and silently drops values
+no longer on a list, so the form never opens on something it cannot submit. On
+success it redirects to `/dashboard`.
+
+County names are the official ones, since tender notices are published against
+them: `Nairobi City` rather than `Nairobi`, `Taita-Taveta` rather than
+`Taita Taveta`. If you change a list, existing rows keep the old value until the
+representative next saves, so add rather than rename where you can.
+
+### Representatives cannot write billing columns
+
+Migration `0004` revokes table-wide `UPDATE` on `companies` and grants it on
+`name`, `industry`, `sectors_of_interest`, `region` and `company_size` only.
+
+This matters because RLS decides which **row** a representative may touch, never
+which **columns**. With the blanket grant that `0001` gave, a request straight at
+PostgREST could have done this:
+
+```
+PATCH /rest/v1/companies?id=eq.<their own company>
+{ "trial_ends_at": "2099-01-01T00:00:00Z", "plan": "enterprise" }
+```
+
+The row check passes, because it genuinely is their own company. That would have
+let any representative extend their own trial and walk through the `/dashboard`
+gate. Postgres refuses an `UPDATE` that touches a column the role has no
+privilege on, including one that mixes permitted and protected columns in a
+single statement, so the grant list is the whole defence.
+`complete_onboarding()` is `SECURITY DEFINER` and so is unaffected.
+
+## Trial expiry
+
+`app/dashboard/layout.tsx` is the gate. It runs on every navigation into
+`/dashboard` and any route nested beneath it, and redirects to:
+
+- `/signup` when nobody is signed in.
+- `/onboarding` when the user has no company yet.
+- `/upgrade?reason=expired` when `plan` is `trial` and `trial_ends_at` has
+  passed.
+- `/upgrade?reason=unavailable` when the company row cannot be read at all.
+
+It is a server check rather than middleware on purpose. Middleware runs for
+every matched request, so the company lookup would add a database round trip
+across the board, and it could not be the authoritative boundary anyway. RLS and
+this layout are what actually decide. `lib/trial.ts` holds the pure evaluation,
+which **fails closed**: a trial plan whose `trial_ends_at` cannot be parsed is
+treated as expired rather than open. A paid plan is never gated by trial dates.
 
 ## Row level security
 
@@ -158,6 +259,9 @@ The generator widens check constraints to `string`; re-narrow
 
 ## Before launch
 
+- **There is no sign-in page.** Signup works, but a returning representative has
+  nowhere to authenticate, so the `/dashboard` guard can only ever bounce them to
+  `/signup`. This is the next thing to build.
 - Contact addresses across `/contact`, `/careers`, `/privacy`, `/terms` and
   `/security` use the reserved `quicktenders.example` domain. Replace them with
   real inboxes.

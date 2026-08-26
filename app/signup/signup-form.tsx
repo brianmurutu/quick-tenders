@@ -1,14 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 
 import {
-  COMPANY_SIZES,
   EMPTY_SIGN_UP,
-  INDUSTRIES,
   MIN_PASSWORD_LENGTH,
-  REGIONS,
   validateSignUp,
   type SignUpFieldErrors,
   type SignUpInput,
@@ -18,13 +16,21 @@ import { signUp, type SignUpResult } from './actions'
 
 type Status = 'idle' | 'submitting' | SignUpResult['status']
 
+type Blocked = {
+  message: string
+  companyName: string | null
+  representativeEmail: string
+}
+
 export function SignupForm({ initialError }: { initialError?: string }) {
   const formId = useId()
+  const router = useRouter()
   const [values, setValues] = useState<SignUpInput>(EMPTY_SIGN_UP)
   const [fieldErrors, setFieldErrors] = useState<SignUpFieldErrors>({})
   const [formError, setFormError] = useState<string | undefined>(initialError)
   const [status, setStatus] = useState<Status>('idle')
   const [confirmEmail, setConfirmEmail] = useState('')
+  const [blocked, setBlocked] = useState<Blocked | null>(null)
 
   const submitting = status === 'submitting'
 
@@ -63,8 +69,17 @@ export function SignupForm({ initialError }: { initialError?: string }) {
         setFieldErrors(result.fieldErrors)
       } else if (result.status === 'error') {
         setFormError(result.message)
+      } else if (result.status === 'company-exists') {
+        setBlocked({
+          message: result.message,
+          companyName: result.companyName,
+          representativeEmail: result.representativeEmail,
+        })
       } else if (result.status === 'confirm-email') {
         setConfirmEmail(result.email)
+      } else if (result.status === 'ready') {
+        // Confirmations are off, so there is already a session. Go straight in.
+        router.replace('/onboarding')
       }
 
       setStatus(result.status)
@@ -74,13 +89,49 @@ export function SignupForm({ initialError }: { initialError?: string }) {
     }
   }
 
+  if (status === 'company-exists' && blocked) {
+    return (
+      <Panel title="Your company already has an account">
+        <p>{blocked.message}</p>
+        {blocked.companyName ? (
+          <p>
+            The account is registered to{' '}
+            <span className="font-semibold text-slate-900">{blocked.companyName}</span>
+            . Quick Tenders allows one account per company, so there is nothing to
+            set up a second time.
+          </p>
+        ) : (
+          <p>
+            Quick Tenders allows one account per company, so there is nothing to
+            set up a second time.
+          </p>
+        )}
+        <p className="flex flex-wrap gap-x-6 gap-y-2">
+          <a
+            href={`mailto:${blocked.representativeEmail}?subject=Quick%20Tenders%20access`}
+            className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          >
+            Email them for access
+          </a>
+          <Link
+            href="/contact"
+            className="rounded-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          >
+            Something looks wrong, get in touch
+          </Link>
+        </p>
+      </Panel>
+    )
+  }
+
   if (status === 'confirm-email') {
     return (
       <Panel title="Check your email">
         <p>
           A confirmation link is on its way to{' '}
           <span className="font-semibold text-slate-900">{confirmEmail}</span>.
-          Opening it finishes setting up your company and starts the 3-day trial.
+          Opening it finishes setting up your company, starts the 3-day trial, and
+          takes you to onboarding.
         </p>
         <p>
           Nothing has been created yet, so if the address is wrong you can simply
@@ -93,16 +144,13 @@ export function SignupForm({ initialError }: { initialError?: string }) {
   if (status === 'ready') {
     return (
       <Panel title="Account created">
-        <p>
-          Your company is set up and the 3-day trial has started. The agent begins
-          matching against your profile straight away.
-        </p>
+        <p>Your company is set up. Taking you to onboarding now.</p>
         <p>
           <Link
-            href="/"
+            href="/onboarding"
             className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
           >
-            Back to the home page
+            Continue to onboarding
           </Link>
         </p>
       </Panel>
@@ -176,6 +224,7 @@ export function SignupForm({ initialError }: { initialError?: string }) {
       <Field
         id={`${formId}-company-name`}
         label="Company name"
+        hint="You will pick your industry, sectors and county on the next screen."
         error={fieldErrors.companyName}
       >
         {(props) => (
@@ -189,74 +238,6 @@ export function SignupForm({ initialError }: { initialError?: string }) {
           />
         )}
       </Field>
-
-      <Field
-        id={`${formId}-industry`}
-        label="Industry"
-        error={fieldErrors.industry}
-      >
-        {(props) => (
-          <select
-            {...props}
-            name="industry"
-            value={values.industry}
-            onChange={(event) => update('industry', event.target.value)}
-          >
-            <option value="">Select an industry</option>
-            {INDUSTRIES.map((industry) => (
-              <option key={industry} value={industry}>
-                {industry}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <Field
-          id={`${formId}-region`}
-          label="Where you bid"
-          error={fieldErrors.region}
-        >
-          {(props) => (
-            <select
-              {...props}
-              name="region"
-              value={values.region}
-              onChange={(event) => update('region', event.target.value)}
-            >
-              <option value="">Select a scope</option>
-              {REGIONS.map((region) => (
-                <option key={region} value={region}>
-                  {region}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-
-        <Field
-          id={`${formId}-company-size`}
-          label="Company size"
-          error={fieldErrors.companySize}
-        >
-          {(props) => (
-            <select
-              {...props}
-              name="companySize"
-              value={values.companySize}
-              onChange={(event) => update('companySize', event.target.value)}
-            >
-              <option value="">Select a size</option>
-              {COMPANY_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size} people
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-      </div>
 
       <button
         type="submit"

@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get('code')
   const tokenHash = url.searchParams.get('token_hash')
   const type = url.searchParams.get('type') as EmailOtpType | null
-  const next = safeRelativePath(url.searchParams.get('next'))
+  // Signup lands on onboarding unless a ?next= says otherwise.
+  const next = safeRelativePath(url.searchParams.get('next'), '/onboarding')
 
   const back = (error: string) =>
     NextResponse.redirect(new URL(`/signup?error=${error}`, url.origin))
