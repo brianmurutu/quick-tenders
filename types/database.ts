@@ -1,6 +1,6 @@
 /**
- * Hand-written mirror of supabase/migrations/0001_init.sql, in the shape
- * `supabase gen types typescript` produces — so `npm run db:types` can
+ * Hand-written mirror of the SQL migrations, in the shape that
+ * `supabase gen types typescript` produces, so that `npm run db:types` can
  * overwrite this file once you have a project linked.
  *
  * One deliberate difference from the generator: `tenders_matched.status` is
@@ -18,6 +18,13 @@ export type Json =
 
 /** Mirrors the check constraint on public.tenders_matched.status. */
 export type TenderStatus = 'new' | 'reviewed' | 'submitted' | 'expired'
+
+/** Return values of public.company_domain_status(). */
+export type CompanyDomainStatus =
+  | 'available'
+  | 'taken'
+  | 'not_company_domain'
+  | 'invalid'
 
 export type Database = {
   public: {
@@ -74,7 +81,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
-          /** Must equal the auth.users id — there is no default. */
+          /** Must equal the auth.users id. There is no default. */
           id: string
           company_id?: string | null
           full_name?: string | null
@@ -176,11 +183,42 @@ export type Database = {
           },
         ]
       }
+      // RLS is enabled with no policies and no grants, so no client can read
+      // this. Present for completeness; reached only through the SECURITY
+      // DEFINER helpers in 0002.
+      blocked_email_domains: {
+        Row: {
+          domain: string
+          created_at: string
+        }
+        Insert: {
+          domain: string
+          created_at?: string
+        }
+        Update: {
+          domain?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
+      company_domain_status: {
+        Args: { p_domain: string }
+        Returns: CompanyDomainStatus
+      }
+      complete_onboarding: {
+        Args: Record<PropertyKey, never>
+        /** The company id the caller is now attached to. */
+        Returns: string
+      }
       current_company_id: {
         Args: Record<PropertyKey, never>
+        Returns: string | null
+      }
+      normalise_email_domain: {
+        Args: { p_email: string }
         Returns: string | null
       }
       tender_belongs_to_current_company: {

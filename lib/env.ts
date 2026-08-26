@@ -2,7 +2,7 @@
  * Supabase environment configuration, read from .env.local.
  *
  * Both values are NEXT_PUBLIC_ and therefore inlined into the client bundle at
- * build time — that is expected. The anon key is a public credential; row level
+ * build time, which is expected. The anon key is a public credential; row level
  * security is what protects the data, not key secrecy.
  */
 
@@ -37,4 +37,19 @@ export function getSupabaseEnv(): SupabaseEnv {
   }
 
   return env
+}
+
+const DEFAULT_SITE_URL = 'http://localhost:3000'
+
+/**
+ * Public origin of this deployment, used to build the email confirmation
+ * redirect. Must also be added to the Supabase project Redirect URLs allow
+ * list, or confirmation links will be rejected.
+ */
+export function getSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+
+  if (!raw) return DEFAULT_SITE_URL
+
+  return raw.replace(/\/+$/, '')
 }

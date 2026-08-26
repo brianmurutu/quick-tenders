@@ -2,16 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Single light palette. The landing page commits to a light design, so there is
+ * no prefers-color-scheme override here: inheriting a near-white --foreground
+ * would render text invisible on the page's white cards and sections.
+ */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground: #0f172a;
 }
 
 body {
@@ -26,4 +24,11 @@ body {
     Helvetica,
     Arial,
     sans-serif;
+}
+
+/* In-page anchor links in the header and footer. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }

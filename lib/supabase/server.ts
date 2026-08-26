@@ -9,8 +9,8 @@ import type { Database } from '@/types/database'
  * Handlers. Reads the session from the request cookies, so every query runs as
  * the signed-in representative and RLS applies.
  *
- * Create one per request — do not hoist the result into a module-level
- * singleton, or requests would share another user's session.
+ * Create one per request. Do not hoist the result into a module-level
+ * singleton, or requests would share another user session.
  */
 export function createClient() {
   const { url, anonKey } = getSupabaseEnv()
