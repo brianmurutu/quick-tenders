@@ -7,7 +7,7 @@
  */
 
 import {
-  createAnthropicClient,
+  createGrokClient,
   matchThreshold,
   scoreTendersForCompany,
   scoringModel,
@@ -106,7 +106,7 @@ async function existingSourceUrls(
 }
 
 export type RunOptions = {
-  /** Skip the Anthropic and database work, to check source health only. */
+  /** Skip the Grok and database work, to check source health only. */
   dryRun?: boolean
   /** Overrides TENDER_SOURCES for one run. */
   sourceIds?: string[]
@@ -129,11 +129,11 @@ export async function runDiscovery(
 
   if (!options.dryRun && tenders.length > 0) {
     let supabase: SupabaseAdminClient
-    let anthropic: ReturnType<typeof createAnthropicClient>
+    let grok: ReturnType<typeof createGrokClient>
 
     try {
       supabase = createAdminClient()
-      anthropic = createAnthropicClient()
+      grok = createGrokClient()
     } catch (error) {
       // Missing configuration is fatal for the scoring half, but the source
       // summary above is still worth returning.
@@ -172,7 +172,7 @@ export async function runDiscovery(
       }
 
       considered++
-      companies.push(await runForCompany(supabase, anthropic, company, tenders, threshold))
+      companies.push(await runForCompany(supabase, grok, company, tenders, threshold))
     }
   }
 
@@ -192,7 +192,7 @@ export async function runDiscovery(
 
 async function runForCompany(
   supabase: SupabaseAdminClient,
-  anthropic: ReturnType<typeof createAnthropicClient>,
+  grok: ReturnType<typeof createGrokClient>,
   company: ScoringCompany,
   tenders: RawTender[],
   threshold: number,
@@ -224,7 +224,7 @@ async function runForCompany(
 
   if (unseen.length === 0) return result
 
-  const { scores, errors } = await scoreTendersForCompany(anthropic, company, unseen)
+  const { scores, errors } = await scoreTendersForCompany(grok, company, unseen)
   result.errors.push(...errors)
   result.scored = scores.length
 

@@ -84,9 +84,9 @@ lib/docx.ts                 Minimal DOCX writer, no dependencies
 lib/email/                  Resend client and the tender notification template
 lib/signup.ts               Signup fields, validation, and status parsing
 lib/tender-sources/         One file per tender source, behind a shared interface
-lib/tender-matching.ts      Anthropic relevance scoring
+lib/tender-matching.ts      Grok relevance scoring
 lib/tender-discovery.ts     The discovery run
-lib/tender-drafting.ts      Anthropic document drafting
+lib/tender-drafting.ts      Grok document drafting
 lib/tender-documents.ts     The drafting run: store, record, notify
 lib/tender-status.ts        Dashboard bucketing, date phrasing, id validation
 lib/trial.ts                Trial window evaluation

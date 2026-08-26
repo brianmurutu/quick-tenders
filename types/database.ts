@@ -42,6 +42,8 @@ export type Database = {
           trial_started_at: string
           trial_ends_at: string
           plan: string
+          paystack_customer_code: string | null
+          paystack_subscription_code: string | null
           created_at: string
         }
         Insert: {
@@ -56,6 +58,8 @@ export type Database = {
           /** Defaults to trial_started_at + 3 days via trigger. */
           trial_ends_at?: string
           plan?: string
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
           created_at?: string
         }
         Update: {
@@ -69,6 +73,8 @@ export type Database = {
           trial_started_at?: string
           trial_ends_at?: string
           plan?: string
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
           created_at?: string
         }
         Relationships: []
@@ -79,6 +85,7 @@ export type Database = {
           company_id: string | null
           full_name: string | null
           email: string
+          phone_number: string | null
           created_at: string
         }
         Insert: {
@@ -87,6 +94,7 @@ export type Database = {
           company_id?: string | null
           full_name?: string | null
           email: string
+          phone_number?: string | null
           created_at?: string
         }
         Update: {
@@ -94,6 +102,7 @@ export type Database = {
           company_id?: string | null
           full_name?: string | null
           email?: string
+          phone_number?: string | null
           created_at?: string
         }
         // The id -> auth.users(id) foreign key is omitted: auth.users is not
@@ -208,6 +217,50 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          id: string
+          company_id: string
+          paystack_reference: string
+          event_type: string
+          amount_kobo: number | null
+          currency: string | null
+          status: string
+          payload: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          paystack_reference: string
+          event_type: string
+          amount_kobo?: number | null
+          currency?: string | null
+          status?: string
+          payload?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          paystack_reference?: string
+          event_type?: string
+          amount_kobo?: number | null
+          currency?: string | null
+          status?: string
+          payload?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'subscriptions_company_id_fkey'
+            columns: ['company_id']
+            isOneToOne: false
+            referencedRelation: 'companies'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -253,6 +306,7 @@ export type Database = {
           company_size: string | null
           representative_name: string | null
           representative_emails: string[] | null
+          representative_phones: string[] | null
         }[]
       }
       tender_belongs_to_current_company: {

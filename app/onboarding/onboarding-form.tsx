@@ -20,6 +20,7 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
   const formId = useId()
   const router = useRouter()
   const [values, setValues] = useState<CompanyProfile>(initial)
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [fieldErrors, setFieldErrors] = useState<CompanyProfileErrors>({})
   const [formError, setFormError] = useState<string>()
   const [saving, setSaving] = useState(false)
@@ -65,7 +66,7 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
     setSaving(true)
 
     try {
-      const result = await saveCompanyProfile(values)
+      const result = await saveCompanyProfile(values, phoneNumber.trim() || null)
 
       if (result.status === 'invalid') {
         setFieldErrors(result.fieldErrors)
@@ -215,6 +216,32 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
             </select>
           )}
         </Field>
+      </div>
+
+      <div>
+        <label
+          htmlFor={`${formId}-phone`}
+          className="block text-sm font-semibold text-slate-900"
+        >
+          Phone number{' '}
+          <span className="font-normal text-slate-500">(optional)</span>
+        </label>
+        <p className="mt-1 text-sm leading-relaxed text-slate-500">
+          Kenyan number (07XX or +2547XX). Used to send you an SMS when a new tender
+          is matched. You can skip this and add it later.
+        </p>
+        <div className="mt-2">
+          <input
+            id={`${formId}-phone`}
+            type="tel"
+            name="phone_number"
+            autoComplete="tel"
+            placeholder="0712 345 678"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors focus:border-blue-700 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-700"
+          />
+        </div>
       </div>
 
       <div>

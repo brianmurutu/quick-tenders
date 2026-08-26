@@ -25,6 +25,18 @@ export type TrialState = {
 
 export function trialState(company: TrialCompany, now: Date = new Date()): TrialState {
   const onTrial = company.plan === 'trial'
+
+  // Paid plans never expire.
+  if (!onTrial) {
+    return {
+      expired: false,
+      onTrial: false,
+      endsAt: null,
+      msRemaining: 0,
+      daysRemaining: 0,
+    }
+  }
+
   const endsAtMs = new Date(company.trial_ends_at).getTime()
 
   // An unparseable end date on a trial plan fails closed. Granting access

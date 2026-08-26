@@ -1,5 +1,5 @@
 /**
- * Relevance scoring, via the Anthropic API.
+ * Relevance scoring, via the xAI Grok API.
  *
  * One call handles one company against a batch of tenders, rather than one call
  * per tender. A company profile is the expensive part of the prompt and it is
@@ -7,15 +7,13 @@
  * roughly the batch size. Batches are capped because output quality falls off
  * when a model is asked for too many structured items at once.
  *
- * Structured output is forced with a tool definition rather than asked for in
- * prose, so there is no JSON to fish out of prose and no parse to guess at.
+ * Grok is asked for JSON-only output, then its response is fully validated.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
-
 import type { RawTender } from '@/lib/tender-sources'
+import { createGrokClient, grokModel, type GrokClient } from '@/lib/grok'
 
-export const DEFAULT_MODEL = 'claude-sonnet-5'
+export const DEFAULT_MODEL = 'grok-4.6'
 export const DEFAULT_THRESHOLD = 60
 export const MAX_BATCH_SIZE = 20
 export const MAX_SUMMARY_LENGTH = 400
@@ -33,47 +31,6 @@ export type TenderScore = {
   tender: RawTender
   match_score: number
   summary: string
-}
-
-const TOOL_NAME = 'record_tender_scores'
-
-const SCORING_TOOL: Anthropic.Tool = {
-  name: TOOL_NAME,
-  description:
-    'Record a relevance score and a short summary for every tender you were given.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      scores: {
-        type: 'array',
-        description: 'One entry per tender, in any order. Every ref must appear exactly once.',
-        items: {
-          type: 'object',
-          properties: {
-            ref: {
-              type: 'integer',
-              description: 'The ref number of the tender being scored.',
-            },
-            match_score: {
-              type: 'integer',
-              description:
-                'Relevance to this company, 0 to 100. 0 means no relationship to ' +
-                'what they do. 100 means squarely within their stated sectors, ' +
-                'county and capacity.',
-            },
-            summary: {
-              type: 'string',
-              description:
-                'At most two sentences, addressed to the company, saying what the ' +
-                'tender is for and why it does or does not fit them.',
-            },
-          },
-          required: ['ref', 'match_score', 'summary'],
-        },
-      },
-    },
-    required: ['scores'],
-  },
 }
 
 const SYSTEM_PROMPT = [
@@ -177,7 +134,7 @@ export function parseScores(input: unknown, batch: RawTender[]): TenderScore[] {
 }
 
 export function scoringModel(): string {
-  return process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL
+  return grokModel()
 }
 
 export function matchThreshold(): number {
@@ -196,20 +153,13 @@ export function matchThreshold(): number {
 
 /** Scores one batch. Throws on API failure so the caller can decide. */
 export async function scoreBatch(
-  client: Anthropic,
+  client: GrokClient,
   company: ScoringCompany,
   batch: RawTender[],
 ): Promise<TenderScore[]> {
-  const response = await client.messages.create({
-    model: scoringModel(),
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    tools: [SCORING_TOOL],
-    tool_choice: { type: 'tool', name: TOOL_NAME },
-    messages: [
-      {
-        role: 'user',
-        content: [
+  const response = await client.completeJson(
+    SYSTEM_PROMPT,
+    [
           'Score these tenders for the following company.',
           '',
           describeCompany(company),
@@ -218,33 +168,13 @@ export async function scoreBatch(
           '',
           describeTenders(batch),
           '',
-          `Call ${TOOL_NAME} once, with exactly ${batch.length} entries.`,
-        ].join('\n'),
-      },
-    ],
-  })
-
-  const toolUse = response.content.find(
-    (block): block is Anthropic.ToolUseBlock =>
-      block.type === 'tool_use' && block.name === TOOL_NAME,
+          `Return only a JSON object: {"scores":[{"ref":0,"match_score":0,"summary":"..."}]}. Include exactly ${batch.length} entries.`,
+    ].join('\n'),
   )
-
-  if (!toolUse) return []
-
-  return parseScores(toolUse.input, batch)
+  return parseScores(response, batch)
 }
 
-export function createAnthropicClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim()
-
-  if (!apiKey) {
-    throw new Error(
-      'Missing ANTHROPIC_API_KEY. Tender scoring cannot run without it.',
-    )
-  }
-
-  return new Anthropic({ apiKey, maxRetries: 3 })
-}
+export { createGrokClient }
 
 /**
  * Scores every tender for one company, batch by batch.
@@ -255,7 +185,7 @@ export function createAnthropicClient(): Anthropic {
  * and the rest continue.
  */
 export async function scoreTendersForCompany(
-  client: Anthropic,
+  client: GrokClient,
   company: ScoringCompany,
   tenders: RawTender[],
 ): Promise<{ scores: TenderScore[]; errors: string[] }> {

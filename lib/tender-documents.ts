@@ -9,7 +9,7 @@
  * The brief offered either. This is a separate scheduled job that picks up
  * tenders_matched rows with no documents yet, for four reasons:
  *
- *   1. Cost per row. Discovery scores 20 tenders in one Anthropic call. Drafting
+ *   1. Cost per row. Discovery scores 20 tenders in one Grok call. Drafting
  *      is two calls, two DOCX builds, two uploads and an email PER MATCH. Bolted
  *      onto discovery, one run with 30 new matches becomes 60 sequential model
  *      calls and blows the function timeout, taking the matching with it.
@@ -27,11 +27,12 @@
  * matters, or POST to the endpoint at the end of a discovery run.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
-
 import { buildTenderEmail } from '@/lib/email/tender-notification'
 import { resendConfigHint, resendConfigured, sendEmail } from '@/lib/email/resend'
-import { createAnthropicClient } from '@/lib/tender-matching'
+import { sendTenderNotificationSms, type TenderSmsInput } from '@/lib/sms/tender-notification-sms'
+import { textSmsConfigured } from '@/lib/sms/textsms'
+import { createGrokClient } from '@/lib/tender-matching'
+import type { GrokClient } from '@/lib/grok'
 import {
   DOCUMENT_LABELS,
   DOCUMENT_TYPES,
@@ -63,6 +64,8 @@ export type PendingDraft = {
   company_size: string | null
   representative_name: string | null
   representative_emails: string[] | null
+  /** Phone numbers for SMS notification (may be absent from older RPC versions). */
+  representative_phones?: string[] | null
 }
 
 export type TenderDraftResult = {
@@ -113,11 +116,11 @@ export async function runDrafting(
   const tenders: TenderDraftResult[] = []
 
   let supabase: SupabaseAdminClient
-  let anthropic: Anthropic
+  let grok: GrokClient
 
   try {
     supabase = createAdminClient()
-    anthropic = createAnthropicClient()
+    grok = createGrokClient()
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error))
 
@@ -156,7 +159,7 @@ export async function runDrafting(
   }
 
   for (const row of pending) {
-    tenders.push(await processTender(supabase, anthropic, row))
+    tenders.push(await processTender(supabase, grok, row))
   }
 
   return summarise(startedAt, pending.length, tenders, errors)
@@ -164,7 +167,7 @@ export async function runDrafting(
 
 async function processTender(
   supabase: SupabaseAdminClient,
-  anthropic: Anthropic,
+  grok: GrokClient,
   pending: PendingDraft,
 ): Promise<TenderDraftResult> {
   const result: TenderDraftResult = {
@@ -182,7 +185,7 @@ async function processTender(
   if (pending.document_count === 0) {
     for (const docType of DOCUMENT_TYPES) {
       try {
-        const drafted = await draftDocument(anthropic, docType, context)
+        const drafted = await draftDocument(grok, docType, context)
 
         if (!drafted) {
           result.errors.push(`${docType}: the model returned no usable document`)
@@ -291,6 +294,25 @@ async function processTender(
 
   result.emailed = true
 
+  // Send SMS notification if phone numbers are available.
+  const phones = (pending.representative_phones ?? []).filter(Boolean) as string[]
+
+  if (phones.length > 0 && textSmsConfigured()) {
+    const smsInput: TenderSmsInput = {
+      tenderId: pending.tender_id,
+      title: pending.title,
+      deadline: pending.deadline,
+      companyName: pending.company_name,
+    }
+
+    const smsSent = await sendTenderNotificationSms(smsInput, phones)
+
+    if (!smsSent.ok) {
+      // SMS failure is non-fatal: the email was already sent.
+      result.errors.push(`SMS notification failed (non-fatal): ${smsSent.error}`)
+    }
+  }
+
   // Stamped only after Resend accepted the message. If this update fails the
   // representative gets one duplicate on the next run, which is the better way
   // round than never hearing about the tender at all.
@@ -321,7 +343,7 @@ function summarise(
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
-    model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-5',
+    model: process.env.GROK_MODEL?.trim() || 'grok-4.6',
     emailConfigured: resendConfigured(),
     pending,
     tenders,

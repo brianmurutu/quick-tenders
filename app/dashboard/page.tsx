@@ -93,7 +93,11 @@ export default async function DashboardPage({
             </p>
           </div>
 
-          {trial?.onTrial ? (
+          {company?.plan === 'paid' ? (
+            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
+              ✓ Active subscription
+            </p>
+          ) : trial?.onTrial ? (
             <p className="rounded-md border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
               Trial ends {formatTrialDate(trial.endsAt)}
               <span className="mx-2 text-slate-300">|</span>

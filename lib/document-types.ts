@@ -2,7 +2,7 @@
  * Document type constants and the Storage layout.
  *
  * Kept in its own module, free of any SDK import, so the dashboard pages can
- * label a document or build an object path without pulling the Anthropic client
+ * label a document or build an object path without pulling the Grok client
  * into the page bundle. lib/tender-drafting.ts re-exports these for the jobs.
  */
 

@@ -5,6 +5,7 @@ import {
   type CompanyProfile,
   type CompanyProfileErrors,
 } from '@/lib/company-profile'
+import { normaliseKenyanPhone } from '@/lib/sms/textsms'
 import { createClient } from '@/lib/supabase/server'
 
 export type SaveProfileResult =
@@ -13,7 +14,8 @@ export type SaveProfileResult =
   | { status: 'saved' }
 
 /**
- * Writes the matching profile onto the company of the signed-in representative.
+ * Writes the matching profile onto the company of the signed-in representative,
+ * and optionally saves a phone number to the representative row for SMS.
  *
  * Two things keep this honest beyond the checks here: RLS decides which row can
  * be touched, and the column level grants from migration 0004 mean only these
@@ -22,6 +24,7 @@ export type SaveProfileResult =
  */
 export async function saveCompanyProfile(
   input: CompanyProfile,
+  phoneNumber: string | null = null,
 ): Promise<SaveProfileResult> {
   const profile: CompanyProfile = {
     industry: input.industry.trim(),
@@ -89,6 +92,19 @@ export async function saveCompanyProfile(
     return {
       status: 'error',
       message: 'We could not save your profile just now. Try again in a moment.',
+    }
+  }
+
+  // Save phone number to the representative row if provided and valid.
+  if (phoneNumber) {
+    const normalised = normaliseKenyanPhone(phoneNumber)
+
+    if (normalised) {
+      // Best effort: if this fails we still consider the profile saved.
+      await supabase
+        .from('representatives')
+        .update({ phone_number: normalised })
+        .eq('id', user.id)
     }
   }
 

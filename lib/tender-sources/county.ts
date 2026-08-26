@@ -259,7 +259,7 @@ export const kiambuCountySource: TenderSource = {
 //
 // The API works; the tender notices are not in either collection. Enabling a
 // keyword search over a news feed would fill tenders_matched with press releases
-// and burn Anthropic tokens scoring them, which is worse than having no source.
+// and burn Grok tokens scoring them, which is worse than having no source.
 //
 // To enable: find the collection that actually holds notices. Start with
 // /wp-json/wp/v2/types and /wp-json/wp/v2/categories to look for a procurement

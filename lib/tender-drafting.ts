@@ -1,5 +1,5 @@
 /**
- * Drafts the two bid documents for one match, via the Anthropic API.
+ * Drafts the two bid documents for one match, via the xAI Grok API.
  *
  * The output is explicitly a STARTING POINT, not a submission. The prompt forbids
  * inventing anything factual: no certifications, no past contracts, no staff
@@ -9,15 +9,13 @@
  * somebody might submit it.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
-
 import { buildDocx, type DocxBlock } from '@/lib/docx'
+import type { GrokClient } from '@/lib/grok'
 import {
   DOCUMENT_LABELS,
   DOCUMENT_TYPES,
   type DraftDocumentType,
 } from '@/lib/document-types'
-import { scoringModel } from '@/lib/tender-matching'
 
 // Re-exported so the jobs can keep importing these from here.
 export { DOCUMENT_LABELS, DOCUMENT_TYPES }
@@ -48,43 +46,9 @@ export type DraftDocument = {
   sections: DraftSection[]
 }
 
-const TOOL_NAME = 'record_document'
 const MAX_SECTIONS = 12
 const MAX_ITEMS_PER_SECTION = 20
 const MAX_TEXT_LENGTH = 2000
-
-const DRAFT_TOOL: Anthropic.Tool = {
-  name: TOOL_NAME,
-  description: 'Record the drafted document as a title and an ordered list of sections.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      title: { type: 'string', description: 'Document title.' },
-      sections: {
-        type: 'array',
-        description: 'Ordered sections.',
-        items: {
-          type: 'object',
-          properties: {
-            heading: { type: 'string' },
-            paragraphs: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Prose paragraphs for this section. May be empty.',
-            },
-            bullets: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Bullet points for this section. May be empty.',
-            },
-          },
-          required: ['heading', 'paragraphs', 'bullets'],
-        },
-      },
-    },
-    required: ['title', 'sections'],
-  },
-}
 
 const SHARED_RULES = [
   'Hard rules, which matter more than sounding polished:',
@@ -266,36 +230,19 @@ export function draftToBlocks(
 
 /** Drafts one document. Throws on API failure so the caller can decide. */
 export async function draftDocument(
-  client: Anthropic,
+  client: GrokClient,
   docType: DraftDocumentType,
   context: DraftContext,
 ): Promise<DraftDocument | null> {
-  const response = await client.messages.create({
-    model: scoringModel(),
-    max_tokens: 4096,
-    system: PROMPTS[docType],
-    tools: [DRAFT_TOOL],
-    tool_choice: { type: 'tool', name: TOOL_NAME },
-    messages: [
-      {
-        role: 'user',
-        content: [
-          describeContext(context),
-          '',
-          `Call ${TOOL_NAME} once with the finished document.`,
-        ].join('\n'),
-      },
-    ],
-  })
-
-  const toolUse = response.content.find(
-    (block): block is Anthropic.ToolUseBlock =>
-      block.type === 'tool_use' && block.name === TOOL_NAME,
+  const response = await client.completeJson(
+    PROMPTS[docType],
+    [
+      describeContext(context),
+      '',
+      'Return only JSON in this form: {"title":"...","sections":[{"heading":"...","paragraphs":["..."],"bullets":["..."]}]}.',
+    ].join('\n'),
   )
-
-  if (!toolUse) return null
-
-  return parseDraft(toolUse.input, docType)
+  return parseDraft(response, docType)
 }
 
 export type RenderedDocument = {

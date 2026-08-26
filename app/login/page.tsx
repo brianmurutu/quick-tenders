@@ -26,8 +26,6 @@ export default async function LoginPage({
     ? searchParams.reason[0]
     : searchParams.reason
 
-  // Validated here as well as in the action, so the value put on the form is
-  // already safe and a crafted ?next= cannot turn this page into a redirector.
   const next = safeRelativePath(rawNext, '/dashboard')
 
   const supabase = createClient()
@@ -35,15 +33,12 @@ export default async function LoginPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Somebody already signed in has no business on this page. Sending them on is
-  // better than showing a form that would just log them in again.
   if (user) redirect(next)
 
   const message = rawReason ? SIGN_IN_REASONS[rawReason] : undefined
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      {/* Same reduced chrome as signup: nothing to click away with. */}
       <header className="border-b border-slate-200">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
           <Link
@@ -73,14 +68,14 @@ export default async function LoginPage({
           </div>
 
           <p className="mt-8 border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-500">
-            Locked out? Password reset is not built yet, so{' '}
+            Forgot your password?{' '}
             <Link
-              href="/contact"
+              href="/login/forgot-password"
               className="rounded-sm font-semibold text-slate-700 underline transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
             >
-              get in touch
-            </Link>{' '}
-            and we will sort it out by hand.
+              Reset it here
+            </Link>
+            .
           </p>
         </div>
 
