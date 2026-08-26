@@ -32,7 +32,7 @@ export default async function UpgradePage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/signup')
+  if (!user) redirect('/login?reason=sign_in_required&next=/upgrade')
 
   const { data: company } = await supabase
     .from('companies')

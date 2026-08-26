@@ -43,8 +43,13 @@ Migrations run in order:
 - `0004_company_profile_writes.sql`: column level UPDATE grants on `companies`,
   so a representative can write the matching profile but not `plan` or
   `trial_ends_at`.
+- `0005_tender_discovery.sql`: `procuring_entity`, plus the unique index on
+  `(company_id, source_url)` that makes the discovery job idempotent.
+- `0006_tender_drafting.sql`: `notified_at`, one document per type per tender, the
+  private `tender-documents` Storage bucket and its read policy, and the drafting
+  work queue.
 
-If your CLI version rejects the `0001_` prefix, rename both files to 14-digit
+If your CLI version rejects the `0001_` prefix, rename all of them to 14-digit
 timestamp prefixes, keeping their relative order.
 
 ## Supabase project configuration
@@ -66,11 +71,24 @@ app/signup/                 Signup form, plus the server action that runs it
 app/auth/callback/          Where the email confirmation link lands
 app/onboarding/             Matching profile form, and the action that saves it
 app/dashboard/              Trial-gated product area (layout.tsx holds the gate)
+app/dashboard/tenders/[id]/ Tender detail, documents, and the status actions
 app/upgrade/                Where the trial gate sends an expired account
+app/api/cron/               Scheduled jobs: discovery, and document drafting
+app/api/documents/[id]/     Signed download redirect for one drafted document
 components/                 Shared header, footer, content page shell, app header
 lib/env.ts                  Reads and validates the environment
+lib/cron-auth.ts            Shared bearer-token check for the cron endpoints
 lib/company-profile.ts      Industry, sector, county and size lists, plus validation
+lib/document-types.ts       Document types, Storage layout, download filenames
+lib/docx.ts                 Minimal DOCX writer, no dependencies
+lib/email/                  Resend client and the tender notification template
 lib/signup.ts               Signup fields, validation, and status parsing
+lib/tender-sources/         One file per tender source, behind a shared interface
+lib/tender-matching.ts      Anthropic relevance scoring
+lib/tender-discovery.ts     The discovery run
+lib/tender-drafting.ts      Anthropic document drafting
+lib/tender-documents.ts     The drafting run: store, record, notify
+lib/tender-status.ts        Dashboard bucketing, date phrasing, id validation
 lib/trial.ts                Trial window evaluation
 lib/url.ts                  Open redirect guard for ?next=
 lib/supabase/client.ts      Typed client for Client Components
@@ -104,6 +122,12 @@ import { createClient } from '@/lib/supabase/client'
 | `tenders_matched` | Tenders surfaced for a company, with `match_score` and `status`. |
 | `tender_documents` | Files attached to a matched tender. |
 | `blocked_email_domains` | Consumer and disposable providers, read only via SECURITY DEFINER helpers. |
+
+`SUPABASE_SERVICE_ROLE_KEY` is required by the scheduled jobs only, via
+`lib/supabase/admin.ts`, which bypasses RLS because it reads and writes across
+every tenant. It has no `NEXT_PUBLIC_` prefix so it never reaches a bundle, and
+the factory throws if it is ever called in a browser. Do not import it from
+anything a request can reach.
 
 `companies.trial_ends_at` is set to `trial_started_at + 3 days` on insert by the
 `companies_set_trial_window` trigger unless a value is passed explicitly.
@@ -202,6 +226,148 @@ gate. Postgres refuses an `UPDATE` that touches a column the role has no
 privilege on, including one that mixes permitted and protected columns in a
 single statement, so the grant list is the whole defence.
 `complete_onboarding()` is `SECURITY DEFINER` and so is unaffected.
+
+## Scheduled jobs
+
+Two cron endpoints, both authorised by `CRON_SECRET` presented as
+`Authorization: Bearer <secret>` (what Vercel Cron sends) or `X-Cron-Secret`.
+Both **fail closed**: an unset `CRON_SECRET` shuts the endpoint rather than
+opening it. `vercel.json` holds the schedules; Supabase `pg_cron` with `pg_net`,
+GitHub Actions, or anything that can send a header works equally well. Both
+accept `?dry_run=true`, and return **207** when the run happened but something
+inside it failed, so a scheduler can tell partial from total failure.
+
+### `/api/cron/discover-tenders`
+
+Fetches from every enabled source, scores each tender per company against its
+profile, and inserts anything at or above the threshold.
+
+Sources live in `lib/tender-sources/`, one file each, behind a shared interface.
+Adding one is a file plus a line in `ALL_SOURCES`. What each one does today, and
+why:
+
+| Source | robots.txt | State |
+| --- | --- | --- |
+| `ppip` | Permits everything (`Disallow:` empty) | CSV import. tenders.go.ke renders listings client side, so there is no reliable markup to parse. Set `PPIP_CSV_PATH` or `PPIP_CSV_URL`. |
+| `county-nairobi` | Could not be fetched | **Stubbed.** TLS certificate chain does not verify. Not bypassed. |
+| `county-kiambu` | Permits crawling | **Stubbed.** WP REST API returns 401. Not bypassed. |
+| `county-nakuru` | Permits crawling | Implemented against the public WP REST API, but **ships disabled**: tender notices were not found in `posts` or `media`. |
+| `mock` | n/a | Fixtures. On outside production, off inside it. |
+
+Every source appears in the run summary with a status and a reason, so a blocked
+or unconfigured source is visible rather than looking like a quiet zero. One
+source failing never fails the run.
+
+`TENDER_SOURCES` selects which run. Unset means every real source, plus `mock`
+outside production.
+
+### `/api/cron/draft-documents`
+
+Drafts a cover letter and a technical proposal skeleton per new match, stores
+them as DOCX in Supabase Storage, records a `tender_documents` row each, and
+emails the representative through Resend.
+
+**This is a separate scheduled job rather than being chained onto the matching
+insert.** Discovery scores 20 tenders in one model call; drafting is two model
+calls, two DOCX builds, two uploads and an email *per match*, so bolting it on
+would blow the function timeout and take the matching down with it. The queue is
+`pending_tender_drafts()`, which returns matches with no documents **or** no
+`notified_at`, so it is derived from state rather than from remembering an event:
+anything that failed halfway is retried automatically, with no dead letter queue.
+The trade is latency, since a match waits for the next tick. The full reasoning is
+at the top of `lib/tender-documents.ts`.
+
+DOCX rather than PDF because these are drafts a representative has to **edit**
+before submitting. `lib/docx.ts` writes the package directly with `node:zlib`
+(`deflateRawSync` plus `crc32`), so there is no new dependency.
+
+Every generated document opens with a DRAFT banner, and the prompt forbids
+inventing anything factual: no certifications, registrations, past contracts,
+turnover or prices. Anything only the company can supply comes back as a
+bracketed placeholder. A draft that invented an NCA registration would be worse
+than no draft, because somebody might submit it.
+
+Documents are stored at `company_id/tender_id/doc_type.docx` in a **private**
+bucket. The read policy checks the first path segment against
+`current_company_id()`, so one company cannot read another draft bid. There is no
+insert, update or delete policy for `authenticated`: the job writes with the
+service role, and representatives download rather than replace.
+
+The email link points at `/dashboard/tenders/[id]`, which the dashboard now
+serves.
+
+## The dashboard
+
+`/dashboard` lists the matched tenders for the signed-in representative company,
+soonest deadline first, with tenders that have no deadline sorting last rather
+than crowding the top. Every query is scoped by RLS, so none of them carries a
+company filter of its own.
+
+`?status=` filters the list: All, New, Reviewed, Submitted, Expired. Tabs are
+plain links, so the page stays a Server Component with no client JS, and a
+filtered view is shareable. The whole set is fetched once (capped at 500) and
+bucketed in memory, which is what makes the tab counts exact without five extra
+queries.
+
+### Buckets are derived, and mutually exclusive
+
+`lib/tender-status.ts` decides which single tab a tender belongs to:
+
+| Bucket | Rule |
+| --- | --- |
+| Submitted | `status = 'submitted'`, whatever the deadline says |
+| Expired | `status = 'expired'`, **or** the deadline has passed and it is not submitted |
+| Reviewed | `status = 'reviewed'` and not past its deadline |
+| New | `status = 'new'` and not past its deadline |
+
+Two decisions in there. A submitted tender stays under Submitted once its
+deadline passes, because you did the work and it should not vanish into Expired.
+And a tender still marked new whose deadline has gone is shown as Expired,
+because nothing in the pipeline writes `status = 'expired'` yet: without the
+derived rule the Expired tab would always be empty and closed tenders would sit
+in New forever. If a job starts writing that status later, the rule still holds.
+
+The counts are unit tested to sum to the total, so nothing is double counted or
+dropped.
+
+### Status transitions
+
+Opening a tender detail page moves it from `new` to `reviewed`. That write happens
+in a **client effect calling a Server Action**, not during the server render: a
+Server Component render is not a user action, Next can render a route to satisfy a
+link prefetch, and Server Components are meant to be free of side effects. Doing
+it in render would mean a tender flipped to reviewed because somebody hovered a
+row in the list.
+
+Both transitions guard on the current status in the `WHERE` clause rather than
+reading first and then writing:
+
+```sql
+update tenders_matched set status = 'reviewed' where id = $1 and status = 'new'
+```
+
+So a submitted tender cannot be dragged back to reviewed by a stray call, and two
+simultaneous opens cannot fight. Authorisation is left to RLS: an id belonging to
+another company matches no row and the update affects nothing, which is the right
+outcome and needs no extra query.
+
+### Document downloads
+
+Documents go through `/api/documents/[id]` rather than being linked from Storage
+directly. The bucket is private, so each click mints a signed URL valid for 60
+seconds and redirects to it; embedding signed URLs in the page HTML would put a
+working credential into a document that outlives the view and can be forwarded.
+
+Three layers stand behind a download, and the first two are the ones that matter:
+RLS on `tender_documents` means another company document id is indistinguishable
+from one that does not exist; the Storage policy means `createSignedUrl` cannot
+sign an object outside the caller company; and the trial gate is repeated here
+because a route handler is not inside the dashboard layout.
+
+A tender id that is not a uuid is rejected before it reaches Postgres, which
+would otherwise raise on the comparison instead of returning no rows. A tender
+that is not yours 404s rather than 403s, so the response does not confirm the row
+exists.
 
 ## Trial expiry
 

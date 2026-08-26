@@ -40,12 +40,20 @@ export default function SignupPage({
           >
             Quick Tenders
           </Link>
-          <Link
-            href="/"
-            className="rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
-          >
-            Back to home
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link
+              href="/login"
+              className="rounded-sm text-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/"
+              className="rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+            >
+              Back to home
+            </Link>
+          </div>
         </div>
       </header>
 

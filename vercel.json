@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/discover-tenders",
+      "schedule": "23 4 * * *"
+    },
+    {
+      "path": "/api/cron/draft-documents",
+      "schedule": "47 5 * * *"
+    }
+  ]
+}

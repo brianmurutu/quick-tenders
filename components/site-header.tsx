@@ -33,12 +33,21 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <Link
-          href="/signup"
-          className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-        >
-          Get Demo
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link
+            href="/login"
+            className="rounded-sm text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          >
+            Sign in
+          </Link>
+
+          <Link
+            href="/signup"
+            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          >
+            Get Demo
+          </Link>
+        </div>
       </div>
     </header>
   )

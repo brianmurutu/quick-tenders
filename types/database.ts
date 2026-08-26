@@ -117,6 +117,8 @@ export type Database = {
           deadline: string | null
           summary: string | null
           match_score: number | null
+          procuring_entity: string | null
+          notified_at: string | null
           status: TenderStatus
           created_at: string
         }
@@ -128,6 +130,8 @@ export type Database = {
           deadline?: string | null
           summary?: string | null
           match_score?: number | null
+          procuring_entity?: string | null
+          notified_at?: string | null
           status?: TenderStatus
           created_at?: string
         }
@@ -139,6 +143,8 @@ export type Database = {
           deadline?: string | null
           summary?: string | null
           match_score?: number | null
+          procuring_entity?: string | null
+          notified_at?: string | null
           status?: TenderStatus
           created_at?: string
         }
@@ -225,6 +231,29 @@ export type Database = {
       normalise_email_domain: {
         Args: { p_email: string }
         Returns: string | null
+      }
+      /** Service role only. Reads across every tenant. */
+      pending_tender_drafts: {
+        Args: { p_limit?: number }
+        Returns: {
+          tender_id: string
+          title: string | null
+          source_url: string | null
+          deadline: string | null
+          summary: string | null
+          match_score: number | null
+          procuring_entity: string | null
+          notified_at: string | null
+          document_count: number
+          company_id: string
+          company_name: string | null
+          industry: string | null
+          sectors_of_interest: string[] | null
+          region: string | null
+          company_size: string | null
+          representative_name: string | null
+          representative_emails: string[] | null
+        }[]
       }
       tender_belongs_to_current_company: {
         Args: { p_tender_id: string }

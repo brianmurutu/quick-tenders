@@ -32,8 +32,8 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser()
 
-  // No sign-in page exists yet, so an unauthenticated visitor goes to signup.
-  if (!user) redirect('/signup')
+  // Not signed in, or the session has lapsed.
+  if (!user) redirect('/login?reason=sign_in_required&next=/dashboard')
 
   // RLS scopes this to the caller company, so no filter is needed.
   const { data: company, error } = await supabase
