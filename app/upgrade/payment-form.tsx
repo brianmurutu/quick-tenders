@@ -8,7 +8,11 @@ import {
   type SubscriptionPlanId,
 } from '@/lib/paystack'
 
-import { initializePayment, initiateMobileMoneyPayment, verifyPayment } from './actions'
+import {
+  initializePayment,
+  verifyPayment,
+  type PaymentFailureReason,
+} from './actions'
 
 type PaymentMethod = 'card' | 'mpesa'
 type Status = 'idle' | 'initialising' | 'waiting' | 'verifying' | 'paid' | 'failed' | 'error'
@@ -67,10 +71,11 @@ export function PaymentForm({
   const formId = useId()
   const router = useRouter()
   const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>(defaultPlanId)
-  const [method, setMethod] = useState<PaymentMethod>('card')
-  const [phone, setPhone] = useState('')
+  const [method, setMethod] = useState<PaymentMethod>('mpesa')
   const [status, setStatus] = useState<Status>('idle')
+  const [failureReason, setFailureReason] = useState<PaymentFailureReason>()
   const [error, setError] = useState<string>()
+  const [successInfo, setSuccessInfo] = useState<{ amountKes: number; planName: string }>()
 
   const selectedPlan =
     SUBSCRIPTION_PLANS.find((p) => p.id === selectedPlanId) ?? SUBSCRIPTION_PLANS[0]
@@ -79,26 +84,15 @@ export function PaymentForm({
 
   async function handlePay() {
     setError(undefined)
+    setFailureReason(undefined)
     setStatus('initialising')
 
     try {
-      if (method === 'mpesa') {
-        const mobile = await initiateMobileMoneyPayment(phone, selectedPlan.id)
-        if (mobile.status === 'error') {
-          setError(mobile.message)
-          setStatus('error')
-          return
-        }
-        setStatus('waiting')
-        setError(mobile.message)
-        await pollForPayment(mobile.reference, selectedPlan.id)
-        return
-      }
-
       const init = await initializePayment(selectedPlan.id)
 
       if (init.status === 'error') {
         setError(init.message)
+        setFailureReason('generic')
         setStatus('error')
         return
       }
@@ -107,6 +101,9 @@ export function PaymentForm({
 
       setStatus('waiting')
 
+      // Open standard Paystack multi-option popup
+      const channels = method === 'card' ? ['card', 'mobile_money'] : ['mobile_money', 'card']
+
       const popup = window.PaystackPop.setup({
         key: paystackPublicKey,
         email: companyEmail,
@@ -114,64 +111,82 @@ export function PaymentForm({
         currency: 'KES',
         ref: init.reference,
         accessCode: init.accessCode,
-        channels: ['card'],
-        metadata: { payment_method: 'card', plan_id: selectedPlan.id },
-        onClose: () => {
-          setStatus('idle')
+        channels,
+        metadata: {
+          payment_method: method,
+          plan_id: selectedPlan.id,
+          plan_name: selectedPlan.name,
         },
-        callback: async (response) => {
-          setStatus('verifying')
-          const result = await verifyPayment(response.reference, selectedPlan.id)
-
-          if (result.status === 'paid') {
-            setStatus('paid')
-            // Hard reload so the session + plan state refreshes fully.
-            setTimeout(() => router.replace('/dashboard'), 1500)
-          } else if (result.status === 'pending') {
-            setError('Payment is still pending. Complete the prompt on your phone.')
-            setStatus('waiting')
-          } else {
-            setError(result.message)
-            setStatus('failed')
-          }
+        callback: function (response: { reference: string; status: string }) {
+          void handleSuccessCallback(response.reference)
+        },
+        onClose: function () {
+          setStatus('idle')
+          setError('Payment window was closed. You can retry whenever you are ready.')
+          setFailureReason('cancelled')
         },
       })
 
       popup.openIframe()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
+      setError(err instanceof Error ? err.message : 'Something went wrong opening the payment window. Try again.')
+      setFailureReason('generic')
       setStatus('error')
     }
   }
 
-  async function pollForPayment(reference: string, planId: SubscriptionPlanId) {
-    const deadline = Date.now() + 180_000
-    while (Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 5_000))
-      const result = await verifyPayment(reference, planId)
+  async function handleSuccessCallback(reference: string) {
+    setStatus('verifying')
+    try {
+      const result = await verifyPayment(reference, selectedPlan.id)
+
       if (result.status === 'paid') {
         setStatus('paid')
-        setTimeout(() => router.replace('/dashboard'), 1500)
-        return
-      }
-      if (result.status === 'pending') continue
-      if (result.status === 'failed') {
+        setSuccessInfo({ amountKes: result.amountKes, planName: result.planName })
+        router.refresh()
+        setTimeout(() => {
+          router.replace('/dashboard')
+        }, 1200)
+      } else if (result.status === 'pending') {
+        setError('Payment is still processing. Confirming with provider...')
+        setStatus('waiting')
+      } else {
         setError(result.message)
-        setStatus('failed')
-        return
+        setFailureReason(result.status === 'failed' ? result.reason : 'generic')
+        setStatus(result.status === 'failed' ? 'failed' : 'error')
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not verify payment. Please refresh or contact support.')
+      setFailureReason('generic')
+      setStatus('error')
     }
-    setError('We could not confirm the payment yet. It may still complete shortly.')
-    setStatus('failed')
   }
 
   if (status === 'paid') {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-7">
-        <h2 className="text-xl font-semibold text-emerald-900">Payment successful</h2>
-        <p className="mt-3 text-sm leading-relaxed text-emerald-800">
-          Your subscription is active. Taking you to the dashboard now.
-        </p>
+      <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-7 shadow-xs">
+        <div className="flex items-start gap-4">
+          <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+            <CheckCircleIcon />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-emerald-950">Payment successful!</h2>
+            <p className="mt-1 text-sm leading-relaxed text-emerald-800">
+              Your subscription to{' '}
+              <strong className="font-semibold text-emerald-950">
+                {successInfo?.planName ?? selectedPlan.name}
+              </strong>{' '}
+              ({formatKes(successInfo?.amountKes ?? selectedPlan.amountKes)}) is now active.
+            </p>
+            <div className="mt-4 flex items-center gap-3 text-sm font-medium text-emerald-900">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-600"></span>
+              </span>
+              Redirecting you to the dashboard...
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -197,9 +212,11 @@ export function PaymentForm({
                 key={plan.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedPlanId(plan.id)}
+                onClick={() => {
+                  if (!pending) setSelectedPlanId(plan.id)
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (!pending && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault()
                     setSelectedPlanId(plan.id)
                   }
@@ -208,7 +225,7 @@ export function PaymentForm({
                   isSelected
                     ? 'border-blue-700 bg-blue-50/40 shadow-sm ring-2 ring-blue-700'
                     : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
-                }`}
+                } ${pending ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
@@ -277,60 +294,69 @@ export function PaymentForm({
       {/* Payment method selector */}
       <div>
         <p className="text-sm font-semibold text-slate-900">Payment method</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Choose your preferred method. A secure Paystack window will open with all options.
+        </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <MethodButton
-            id={`${formId}-card`}
-            value="card"
-            selected={method === 'card'}
-            label="Card"
-            description="Visa, Mastercard, or Amex"
-            icon={<CardIcon />}
-            onChange={() => setMethod('card')}
-          />
           <MethodButton
             id={`${formId}-mpesa`}
             value="mpesa"
             selected={method === 'mpesa'}
             label="Mobile Money"
-            description="M-Pesa STK push"
+            description="M-Pesa (STK Push & Paybill) or Airtel Money"
             icon={<PhoneIcon />}
-            onChange={() => setMethod('mpesa')}
+            onChange={() => !pending && setMethod('mpesa')}
+          />
+          <MethodButton
+            id={`${formId}-card`}
+            value="card"
+            selected={method === 'card'}
+            label="Card"
+            description="Visa, Mastercard, or American Express"
+            icon={<CardIcon />}
+            onChange={() => !pending && setMethod('card')}
           />
         </div>
       </div>
 
-      {method === 'mpesa' && (
-        <div>
-          <label
-            htmlFor={`${formId}-phone`}
-            className="block text-sm font-semibold text-slate-900"
-          >
-            M-Pesa phone number
-          </label>
-          <p className="mt-1 text-sm text-slate-500">
-            The number that will receive the STK push prompt. Format: 07XX or +2547XX.
-          </p>
-          <div className="mt-2">
-            <input
-              id={`${formId}-phone`}
-              type="tel"
-              autoComplete="tel"
-              placeholder="0712 345 678"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors focus:border-blue-700 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-700"
-            />
-          </div>
-        </div>
-      )}
-
+      {/* Real-time Failure & Error Notifications */}
       {error ? (
         <div
           role="alert"
-          className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm leading-relaxed text-red-900"
+          className={`rounded-lg border p-4 text-sm leading-relaxed transition-all ${
+            failureReason === 'cancelled'
+              ? 'border-amber-300 bg-amber-50 text-amber-900'
+              : failureReason === 'insufficient_funds'
+                ? 'border-rose-300 bg-rose-50 text-rose-900 font-medium'
+                : failureReason === 'invalid_pin'
+                  ? 'border-rose-300 bg-rose-50 text-rose-900 font-medium'
+                  : failureReason === 'timeout'
+                    ? 'border-amber-300 bg-amber-50 text-amber-900'
+                    : 'border-red-300 bg-red-50 text-red-900'
+          }`}
         >
-          {error}
+          <div className="flex items-start gap-3">
+            <span className="text-lg">
+              {failureReason === 'cancelled' && '🚫'}
+              {failureReason === 'insufficient_funds' && '⚠️'}
+              {failureReason === 'invalid_pin' && '🔒'}
+              {failureReason === 'timeout' && '⏱️'}
+              {(!failureReason || failureReason === 'generic' || failureReason === 'declined') && '❌'}
+            </span>
+            <div>
+              {failureReason === 'insufficient_funds' ? (
+                <p className="font-bold">Insufficient Balance</p>
+              ) : failureReason === 'cancelled' ? (
+                <p className="font-bold">Payment Cancelled</p>
+              ) : failureReason === 'invalid_pin' ? (
+                <p className="font-bold">Incorrect PIN</p>
+              ) : failureReason === 'timeout' ? (
+                <p className="font-bold">Request Timed Out</p>
+              ) : null}
+              <p className="mt-0.5">{error}</p>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -341,12 +367,12 @@ export function PaymentForm({
         className="w-full rounded-md bg-blue-700 px-6 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
       >
         {status === 'initialising'
-          ? 'Opening payment…'
+          ? 'Opening payment window…'
           : status === 'waiting'
-            ? 'Complete in the payment window…'
+            ? 'Complete payment in Paystack window…'
             : status === 'verifying'
               ? 'Confirming payment…'
-              : `Pay ${formattedAmount} with ${method === 'mpesa' ? 'M-Pesa' : 'card'}`}
+              : `Pay ${formattedAmount} with ${method === 'mpesa' ? 'Mobile Money' : 'Card'}`}
       </button>
 
       <p className="text-center text-xs leading-relaxed text-slate-400">
@@ -462,6 +488,24 @@ function PhoneIcon() {
     >
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-6 w-6"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
     </svg>
   )
 }

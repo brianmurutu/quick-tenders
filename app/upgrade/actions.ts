@@ -21,11 +21,86 @@ export type MobileMoneyPaymentResult =
   | { status: 'pending'; reference: string; message: string }
   | { status: 'error'; message: string }
 
+export type PaymentFailureReason =
+  | 'cancelled'
+  | 'insufficient_funds'
+  | 'invalid_pin'
+  | 'timeout'
+  | 'declined'
+  | 'generic'
+
 export type VerifyPaymentResult =
-  | { status: 'paid' }
+  | { status: 'paid'; amountKes: number; planName: string }
   | { status: 'pending' }
-  | { status: 'failed'; message: string }
+  | { status: 'failed'; reason?: PaymentFailureReason; message: string }
   | { status: 'error'; message: string }
+
+function parsePaymentFailure(
+  gatewayResponse?: string | null,
+  status?: string,
+  message?: string | null,
+): { reason: PaymentFailureReason; message: string } {
+  const combined = `${gatewayResponse ?? ''} ${message ?? ''} ${status ?? ''}`.toLowerCase()
+
+  if (
+    combined.includes('cancel') ||
+    combined.includes('user cancelled') ||
+    combined.includes('request was cancelled')
+  ) {
+    return {
+      reason: 'cancelled',
+      message: 'The payment prompt was cancelled on the phone. You can try again whenever you are ready.',
+    }
+  }
+
+  if (
+    combined.includes('insufficient') ||
+    combined.includes('not enough') ||
+    combined.includes('low balance')
+  ) {
+    return {
+      reason: 'insufficient_funds',
+      message: 'Insufficient balance in your M-Pesa account. Please top up your account and try again.',
+    }
+  }
+
+  if (
+    combined.includes('pin') ||
+    combined.includes('wrong pin') ||
+    combined.includes('invalid pin')
+  ) {
+    return {
+      reason: 'invalid_pin',
+      message: 'Incorrect M-Pesa PIN entered. Please try again with your correct PIN.',
+    }
+  }
+
+  if (
+    combined.includes('timeout') ||
+    combined.includes('timed out') ||
+    combined.includes('no response')
+  ) {
+    return {
+      reason: 'timeout',
+      message: 'The payment prompt timed out waiting for approval. Please unlock your phone and try again.',
+    }
+  }
+
+  if (combined.includes('declined') || combined.includes('rejected')) {
+    return {
+      reason: 'declined',
+      message: gatewayResponse || 'Payment was declined by your provider. Please try again.',
+    }
+  }
+
+  return {
+    reason: 'generic',
+    message:
+      gatewayResponse ||
+      message ||
+      `Payment was not completed (Status: ${status || 'failed'}). Please try again.`,
+  }
+}
 
 /**
  * Initialise a Paystack transaction for the signed-in company and chosen plan.
@@ -144,14 +219,20 @@ export async function verifyPayment(
     return { status: 'error', message: `Could not verify payment: ${verification.error}` }
   }
 
-  if (['pay_offline', 'pending', 'processing'].includes(verification.status)) {
+  if (['pay_offline', 'pending', 'processing', 'ongoing'].includes(verification.status.toLowerCase())) {
     return { status: 'pending' }
   }
 
   if (verification.status !== 'success') {
+    const failure = parsePaymentFailure(
+      verification.gatewayResponse,
+      verification.status,
+      verification.message,
+    )
     return {
       status: 'failed',
-      message: `Payment status was "${verification.status}". Please try again or contact support.`,
+      reason: failure.reason,
+      message: failure.message,
     }
   }
 
@@ -185,7 +266,7 @@ export async function verifyPayment(
     verification.metadata?.user_id !== user.id ||
     verification.metadata?.company_id !== companyId
   ) {
-    return { status: 'failed', message: 'This payment does not match your subscription.' }
+    return { status: 'failed', reason: 'generic', message: 'This payment does not match your subscription details.' }
   }
 
   // Upgrade the plan.
@@ -224,5 +305,9 @@ export async function verifyPayment(
     }
   }
 
-  return { status: 'paid' }
+  return {
+    status: 'paid',
+    amountKes: verification.amountMinor / 100,
+    planName: expectedPlan?.name ?? 'Quick Tenders',
+  }
 }

@@ -108,6 +108,8 @@ export type PaystackVerifyResult =
       reference: string
       amountMinor: number
       currency: string
+      gatewayResponse?: string | null
+      message?: string | null
       customerCode: string | null
       customerEmail: string
       metadata: Record<string, unknown> | null
@@ -238,6 +240,8 @@ export async function verifyTransaction(reference: string): Promise<PaystackVeri
       reference: string
       amount: number
       currency: string
+      gateway_response?: string | null
+      message?: string | null
       customer: { email: string; customer_code: string | null }
       metadata?: Record<string, unknown> | string | null
     }
@@ -256,6 +260,8 @@ export async function verifyTransaction(reference: string): Promise<PaystackVeri
       reference: d.reference,
       amountMinor: d.amount,
       currency: d.currency,
+      gatewayResponse: d.gateway_response ?? null,
+      message: d.message ?? null,
       customerCode: d.customer?.customer_code ?? null,
       customerEmail: d.customer?.email ?? '',
       metadata:
