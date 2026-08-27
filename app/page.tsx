@@ -267,7 +267,7 @@ function Pricing() {
           </p>
           <h2
             id="pricing-heading"
-            className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl"
+            className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl"
           >
             Start with 3 days free, upgrade when you see the results
           </h2>
@@ -276,7 +276,7 @@ function Pricing() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-2 lg:max-w-4xl lg:mx-auto">
+        <div className={`${sectionHeaderGap} mx-auto grid gap-8 md:grid-cols-2 lg:max-w-4xl`}>
           {/* Trial Card */}
           <div className="flex flex-col justify-between rounded-2xl border border-slate-700 bg-slate-800/60 p-8 shadow-sm transition-all hover:border-slate-600">
             <div>

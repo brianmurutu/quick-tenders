@@ -1,5 +1,8 @@
 import Link from 'next/link'
 
+import { container } from '@/components/layout'
+import { Logo } from '@/components/logo'
+
 /**
  * Section links are absolute (/#how-it-works) rather than bare fragments, so
  * the header works the same on every page and not only on the home page.
@@ -13,12 +16,12 @@ const navLinks = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
+      <div className={`${container} flex h-16 items-center justify-between`}>
         <Link
           href="/"
-          className="rounded-sm text-base font-semibold tracking-tight text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          className="rounded-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
         >
-          Quick Tenders
+          <Logo />
         </Link>
 
         <nav aria-label="Main" className="hidden items-center gap-8 md:flex">

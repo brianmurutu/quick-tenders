@@ -1,12 +1,15 @@
 /**
  * Shared vertical rhythm for the marketing pages.
  *
- * These were written out per section before, which drifted: three bands used
- * `py-20 sm:py-28` while the trial CTA used `py-20 sm:py-24`, so the rhythm
- * broke on the most important band. The old two-step scale also landed the
- * full 112px of padding at `sm` (640px), which is a lot of air for a phone in
- * landscape while the gutters are still only 24px. Every band shares one
- * three-step scale now.
+ * These were written out per section before, which drifted: three bands stepped
+ * 80px to 112px while the trial CTA stepped 80px to 96px, so the rhythm broke on
+ * the most important band. The old two-step scale also landed the full 112px at
+ * the 640px breakpoint, which is a lot of air for a phone in landscape while the
+ * gutters are still only 24px. Every band shares one three-step scale now.
+ *
+ * Avoid writing literal utility names in comments in this file: Tailwind scans
+ * it as plain text and would emit a dead utility for anything that parses as a
+ * class.
  */
 
 /** Width and gutters for a full-width band's content. */

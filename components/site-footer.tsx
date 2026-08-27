@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { CopyrightYear } from '@/components/copyright-year'
 import { container } from '@/components/layout'
+import { Logo } from '@/components/logo'
 
 const footerGroups = [
   {
@@ -37,9 +38,7 @@ export function SiteFooter() {
       <div className={`${container} py-16 lg:py-20`}>
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-base font-semibold tracking-tight text-slate-900">
-              Quick Tenders
-            </p>
+            <Logo />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-600">
               An AI agent that finds matching tenders and drafts the bids, so one
               representative can cover the whole pipeline.

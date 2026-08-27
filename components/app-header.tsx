@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { Logo } from '@/components/logo'
 import { signOutAction } from '@/lib/auth-actions'
 
 /**
@@ -23,9 +24,9 @@ export function AppHeader({
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-6 lg:px-8">
         <Link
           href="/"
-          className="rounded-sm text-base font-semibold tracking-tight text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          className="rounded-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
         >
-          Quick Tenders
+          <Logo />
         </Link>
 
         <div className="flex items-center gap-5 text-sm">
