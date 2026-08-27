@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { CopyrightYear } from '@/components/copyright-year'
+import { container } from '@/components/layout'
 
 const footerGroups = [
   {
@@ -8,7 +9,7 @@ const footerGroups = [
     links: [
       { label: 'How it works', href: '/#how-it-works' },
       { label: 'Why Quick Tenders', href: '/#why' },
-      { label: 'Free trial', href: '/#trial' },
+      { label: 'Pricing', href: '/#pricing' },
       { label: 'Get Demo', href: '/signup' },
     ],
   },
@@ -33,7 +34,7 @@ const footerGroups = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8">
+      <div className={`${container} py-16 lg:py-20`}>
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="text-base font-semibold tracking-tight text-slate-900">
@@ -64,7 +65,7 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-slate-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-3 border-t border-slate-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
             &copy; <CopyrightYear initialYear={new Date().getFullYear()} /> Quick
             Tenders. All rights reserved.

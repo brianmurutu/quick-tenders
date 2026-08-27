@@ -7,7 +7,7 @@ import Link from 'next/link'
 const navLinks = [
   { label: 'How it works', href: '/#how-it-works' },
   { label: 'Why Quick Tenders', href: '/#why' },
-  { label: 'Trial', href: '/#trial' },
+  { label: 'Pricing', href: '/#pricing' },
 ]
 
 export function SiteHeader() {

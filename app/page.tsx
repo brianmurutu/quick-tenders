@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { container, sectionHeaderGap, sectionY } from '@/components/layout'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 
@@ -56,7 +57,7 @@ export default function Home() {
         <Hero />
         <HowItWorks />
         <ValueProps />
-        <TrialCallout />
+        <Pricing />
       </main>
 
       <SiteFooter />
@@ -67,13 +68,15 @@ export default function Home() {
 function Hero() {
   return (
     <section className="border-b border-slate-200">
-      <div className="mx-auto grid max-w-6xl gap-16 px-6 py-20 sm:py-28 lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-8">
+      <div
+        className={`${container} ${sectionY} grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-20`}
+      >
         <div>
           <p className="text-sm font-semibold uppercase tracking-widest text-blue-700">
             Tender bidding, automated
           </p>
 
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.5rem] lg:leading-[1.05]">
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.5rem] lg:leading-[1.05]">
             An AI agent that finds your tenders and drafts the bids
           </h1>
 
@@ -181,7 +184,7 @@ function HowItWorks() {
       aria-labelledby="how-it-works-heading"
       className="scroll-mt-16 border-b border-slate-200 bg-slate-50"
     >
-      <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28 lg:px-8">
+      <div className={`${container} ${sectionY}`}>
         <div className="max-w-2xl">
           <h2
             id="how-it-works-heading"
@@ -195,7 +198,9 @@ function HowItWorks() {
           </p>
         </div>
 
-        <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <ol
+          className={`${sectionHeaderGap} grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4`}
+        >
           {steps.map((step, index) => (
             <li key={step.title}>
               <span className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-700 text-sm font-semibold text-white">
@@ -204,7 +209,7 @@ function HowItWorks() {
               <h3 className="mt-5 text-base font-semibold text-slate-900">
                 {step.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
                 {step.body}
               </p>
             </li>
@@ -220,9 +225,9 @@ function ValueProps() {
     <section
       id="why"
       aria-labelledby="why-heading"
-      className="scroll-mt-16 border-b border-slate-200"
+      className="scroll-mt-16"
     >
-      <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28 lg:px-8">
+      <div className={`${container} ${sectionY}`}>
         <div className="max-w-2xl">
           <h2 id="why-heading" className="text-3xl font-semibold tracking-tight sm:text-4xl">
             Why Quick Tenders
@@ -233,7 +238,7 @@ function ValueProps() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className={`${sectionHeaderGap} grid gap-6 md:grid-cols-3`}>
           {valueProps.map(({ title, body, icon: Icon }) => (
             <article
               key={title}
@@ -252,36 +257,124 @@ function ValueProps() {
   )
 }
 
-function TrialCallout() {
+function Pricing() {
   return (
-    <section id="trial" aria-labelledby="trial-heading" className="scroll-mt-16 bg-slate-900">
-      <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24 lg:px-8">
+    <section id="pricing" aria-labelledby="pricing-heading" className="scroll-mt-16 bg-slate-900 text-white">
+      <div className={`${container} ${sectionY}`}>
         <div className="mx-auto max-w-2xl text-center">
-          <h2
-            id="trial-heading"
-            className="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
-          >
-            3-day free trial, one account per company
-          </h2>
-          <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            Sign up with your company email and the agent starts matching on day
-            one. Nothing to install, no procurement process to sit through.
+          <p className="text-sm font-semibold uppercase tracking-widest text-blue-400">
+            Simple, Transparent Pricing
           </p>
-
-          <div className="mt-10">
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-md bg-white px-6 py-3 text-base font-semibold text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              Get Demo
-            </Link>
-          </div>
-
-          <p className="mt-6 text-sm text-slate-400">
-            Your trial ends three days after you sign up. We will tell you before
-            it does.
+          <h2
+            id="pricing-heading"
+            className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl"
+          >
+            Start with 3 days free, upgrade when you see the results
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-slate-300 sm:text-lg">
+            Every account begins with a full-access 3-day trial. No credit card required to start.
           </p>
         </div>
+
+        <div className="mt-14 grid gap-8 md:grid-cols-2 lg:max-w-4xl lg:mx-auto">
+          {/* Trial Card */}
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-700 bg-slate-800/60 p-8 shadow-sm transition-all hover:border-slate-600">
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">3-Day Free Trial</h3>
+                <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">
+                  No Commitment
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-slate-300">
+                Experience full autonomous tender finding and AI bid drafting on day one.
+              </p>
+
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold tracking-tight text-white">KES 0</span>
+                <span className="text-sm font-medium text-slate-400">/ 3 days</span>
+              </div>
+
+              <ul className="mt-8 space-y-3 text-sm text-slate-300">
+                {[
+                  'Full AI tender discovery & scoring',
+                  'Automated Word (.docx) proposal drafts',
+                  'Instant email alerts on new matches',
+                  'One company account with email domain lock',
+                  'No credit card required upfront',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-400">
+                      ✓
+                    </span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-8">
+              <Link
+                href="/signup"
+                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-600 bg-slate-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Get Demo (Free Trial)
+              </Link>
+            </div>
+          </div>
+
+          {/* Pro Subscription Card */}
+          <div className="relative flex flex-col justify-between rounded-2xl border-2 border-blue-500 bg-slate-800 p-8 shadow-xl">
+            <div className="absolute -top-3.5 right-6 rounded-full bg-blue-600 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
+              Recommended
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">Quick Tenders Pro</h3>
+              </div>
+              <p className="mt-3 text-sm text-slate-300">
+                Continuous AI procurement intelligence and automatic bid generation.
+              </p>
+
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold tracking-tight text-white">KES 2,000</span>
+                <span className="text-sm font-medium text-slate-400">/ month</span>
+              </div>
+
+              <ul className="mt-8 space-y-3 text-sm text-slate-300">
+                {[
+                  'Continuous monitoring of national & county portals',
+                  'AI fit scoring tailored to your exact profile',
+                  'Complete Word (.docx) proposal packs ready to edit',
+                  'Email & SMS alerts for high-priority matches',
+                  'Unlimited matched tender tracking & archive',
+                  'M-Pesa & Card billing via Paystack (Cancel anytime)',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-xs">
+                      ✓
+                    </span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-8">
+              <Link
+                href="/signup"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                Start Free Trial & Subscribe
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-12 text-center text-xs text-slate-400">
+          Secure checkout via Paystack with M-Pesa and Card support. All prices in Kenyan Shillings (KES).
+        </p>
       </div>
     </section>
   )
