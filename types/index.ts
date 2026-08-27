@@ -6,7 +6,7 @@
 
 import type { Database, TenderStatus } from './database'
 
-export type { Database, Json, TenderStatus } from './database'
+export type { Database, Json, TenderStatus, SignupStatus } from './database'
 
 type PublicSchema = Database['public']
 

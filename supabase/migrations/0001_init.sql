@@ -1,4 +1,4 @@
--- Quick Tenders — initial schema.
+-- Quick Tenders: initial schema.
 --
 -- Tenancy model
 -- -------------
@@ -162,7 +162,7 @@ comment on function public.tender_belongs_to_current_company(uuid) is
 --
 -- Policies are written per command rather than as `for all` so each grant is
 -- explicit and auditable. `service_role` bypasses RLS entirely and is what the
--- signup/onboarding path must use — see the note under `companies` below.
+-- signup/onboarding path must use. See the note under `companies` below.
 
 alter table public.companies       enable row level security;
 alter table public.representatives enable row level security;
@@ -173,7 +173,7 @@ alter table public.tender_documents enable row level security;
 --
 -- Note: an authenticated user cannot INSERT a company, because before their
 -- representative row exists current_company_id() is null. Company creation is
--- therefore an onboarding concern — do it from a trusted server context with
+-- therefore an onboarding concern. Do it from a trusted server context with
 -- the service role key, or add a SECURITY DEFINER RPC that creates the company
 -- and the representative row together.
 

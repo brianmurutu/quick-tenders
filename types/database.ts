@@ -1,6 +1,6 @@
 /**
- * Hand-written mirror of supabase/migrations/0001_init.sql, in the shape
- * `supabase gen types typescript` produces — so `npm run db:types` can
+ * Hand-written mirror of the SQL migrations, in the shape that
+ * `supabase gen types typescript` produces, so that `npm run db:types` can
  * overwrite this file once you have a project linked.
  *
  * One deliberate difference from the generator: `tenders_matched.status` is
@@ -19,6 +19,14 @@ export type Json =
 /** Mirrors the check constraint on public.tenders_matched.status. */
 export type TenderStatus = 'new' | 'reviewed' | 'submitted' | 'expired'
 
+/** Values of the `status` key returned by public.company_signup_status(). */
+export type SignupStatus =
+  | 'available'
+  | 'join_existing'
+  | 'representative_exists'
+  | 'not_company_domain'
+  | 'invalid'
+
 export type Database = {
   public: {
     Tables: {
@@ -34,6 +42,8 @@ export type Database = {
           trial_started_at: string
           trial_ends_at: string
           plan: string
+          paystack_customer_code: string | null
+          paystack_subscription_code: string | null
           created_at: string
         }
         Insert: {
@@ -48,6 +58,8 @@ export type Database = {
           /** Defaults to trial_started_at + 3 days via trigger. */
           trial_ends_at?: string
           plan?: string
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
           created_at?: string
         }
         Update: {
@@ -61,6 +73,8 @@ export type Database = {
           trial_started_at?: string
           trial_ends_at?: string
           plan?: string
+          paystack_customer_code?: string | null
+          paystack_subscription_code?: string | null
           created_at?: string
         }
         Relationships: []
@@ -71,14 +85,16 @@ export type Database = {
           company_id: string | null
           full_name: string | null
           email: string
+          phone_number: string | null
           created_at: string
         }
         Insert: {
-          /** Must equal the auth.users id — there is no default. */
+          /** Must equal the auth.users id. There is no default. */
           id: string
           company_id?: string | null
           full_name?: string | null
           email: string
+          phone_number?: string | null
           created_at?: string
         }
         Update: {
@@ -86,6 +102,7 @@ export type Database = {
           company_id?: string | null
           full_name?: string | null
           email?: string
+          phone_number?: string | null
           created_at?: string
         }
         // The id -> auth.users(id) foreign key is omitted: auth.users is not
@@ -109,6 +126,8 @@ export type Database = {
           deadline: string | null
           summary: string | null
           match_score: number | null
+          procuring_entity: string | null
+          notified_at: string | null
           status: TenderStatus
           created_at: string
         }
@@ -120,6 +139,8 @@ export type Database = {
           deadline?: string | null
           summary?: string | null
           match_score?: number | null
+          procuring_entity?: string | null
+          notified_at?: string | null
           status?: TenderStatus
           created_at?: string
         }
@@ -131,6 +152,8 @@ export type Database = {
           deadline?: string | null
           summary?: string | null
           match_score?: number | null
+          procuring_entity?: string | null
+          notified_at?: string | null
           status?: TenderStatus
           created_at?: string
         }
@@ -176,12 +199,115 @@ export type Database = {
           },
         ]
       }
+      // RLS is enabled with no policies and no grants, so no client can read
+      // this. Present for completeness; reached only through the SECURITY
+      // DEFINER helpers in 0002.
+      blocked_email_domains: {
+        Row: {
+          domain: string
+          created_at: string
+        }
+        Insert: {
+          domain: string
+          created_at?: string
+        }
+        Update: {
+          domain?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          company_id: string
+          paystack_reference: string
+          event_type: string
+          amount_kobo: number | null
+          currency: string | null
+          status: string
+          payload: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          paystack_reference: string
+          event_type: string
+          amount_kobo?: number | null
+          currency?: string | null
+          status?: string
+          payload?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          paystack_reference?: string
+          event_type?: string
+          amount_kobo?: number | null
+          currency?: string | null
+          status?: string
+          payload?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'subscriptions_company_id_fkey'
+            columns: ['company_id']
+            isOneToOne: false
+            referencedRelation: 'companies'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
+      company_signup_status: {
+        Args: { p_domain: string }
+        /**
+         * jsonb. Shape depends on `status`; parse it with parseSignupStatus in
+         * lib/signup.ts rather than trusting the keys.
+         */
+        Returns: Json
+      }
+      complete_onboarding: {
+        Args: Record<PropertyKey, never>
+        /** The company id the caller is now attached to. */
+        Returns: string
+      }
       current_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string | null
+      }
+      normalise_email_domain: {
+        Args: { p_email: string }
+        Returns: string | null
+      }
+      /** Service role only. Reads across every tenant. */
+      pending_tender_drafts: {
+        Args: { p_limit?: number }
+        Returns: {
+          tender_id: string
+          title: string | null
+          source_url: string | null
+          deadline: string | null
+          summary: string | null
+          match_score: number | null
+          procuring_entity: string | null
+          notified_at: string | null
+          document_count: number
+          company_id: string
+          company_name: string | null
+          industry: string | null
+          sectors_of_interest: string[] | null
+          region: string | null
+          company_size: string | null
+          representative_name: string | null
+          representative_emails: string[] | null
+          representative_phones: string[] | null
+        }[]
       }
       tender_belongs_to_current_company: {
         Args: { p_tender_id: string }

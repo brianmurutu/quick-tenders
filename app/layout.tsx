@@ -4,7 +4,8 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Quick Tenders',
-  description: 'Tender matching for companies.',
+  description:
+    'An AI agent that finds matching tenders and drafts the bids, so one representative can cover the whole pipeline.',
 }
 
 export default function RootLayout({

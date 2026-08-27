@@ -8,6 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:watch": "tsx --test --watch tests/**/*.test.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test",
+    "diagnose": "node scripts/diagnose.mjs",
+    "pipeline": "tsx scripts/verify-pipeline.mts",
     "db:types": "supabase gen types typescript --linked --schema public > types/database.ts"
   },
   "dependencies": {
@@ -25,6 +30,7 @@
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
