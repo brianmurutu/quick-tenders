@@ -31,8 +31,8 @@ import { buildTenderEmail } from '@/lib/email/tender-notification'
 import { resendConfigHint, resendConfigured, sendEmail } from '@/lib/email/resend'
 import { sendTenderNotificationSms, type TenderSmsInput } from '@/lib/sms/tender-notification-sms'
 import { textSmsConfigured } from '@/lib/sms/textsms'
-import { createGrokClient } from '@/lib/tender-matching'
-import type { GrokClient } from '@/lib/grok'
+import { createAiClient } from '@/lib/tender-matching'
+import { aiModel, type AiClient } from '@/lib/ai'
 import {
   DOCUMENT_LABELS,
   DOCUMENT_TYPES,
@@ -106,7 +106,22 @@ function toDraftContext(pending: PendingDraft): DraftContext {
   }
 }
 
-export type RunOptions = { limit?: number; dryRun?: boolean }
+export type RunOptions = {
+  limit?: number
+  dryRun?: boolean
+  /**
+   * Restricts the run to one company. Used by the verification harness so a test
+   * account can be driven end to end without drafting for every other tenant.
+   */
+  companyId?: string
+  /**
+   * Overrides the LLM client. Production leaves this unset and gets the provider
+   * from lib/ai.ts; the verification harness passes a deterministic stand-in so
+   * the storage, email and dashboard stages can be exercised with no provider
+   * credits. See scripts/verify-pipeline.mjs.
+   */
+  client?: AiClient
+}
 
 export async function runDrafting(
   options: RunOptions = {},
@@ -116,15 +131,15 @@ export async function runDrafting(
   const tenders: TenderDraftResult[] = []
 
   let supabase: SupabaseAdminClient
-  let grok: GrokClient
+  let grok: AiClient
 
   try {
     supabase = createAdminClient()
-    grok = createGrokClient()
+    grok = options.client ?? createAiClient()
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error))
 
-    return summarise(startedAt, 0, tenders, errors)
+    return summarise(startedAt, 0, tenders, errors, grokModelOf(options))
   }
 
   const { data, error } = await supabase.rpc('pending_tender_drafts', {
@@ -134,10 +149,13 @@ export async function runDrafting(
   if (error) {
     errors.push(`Could not load pending drafts: ${error.message}`)
 
-    return summarise(startedAt, 0, tenders, errors)
+    return summarise(startedAt, 0, tenders, errors, grok.model)
   }
 
-  const pending = (data ?? []) as PendingDraft[]
+  const allPending = (data ?? []) as PendingDraft[]
+  const pending = options.companyId
+    ? allPending.filter((row) => row.company_id === options.companyId)
+    : allPending
 
   if (options.dryRun) {
     for (const row of pending) {
@@ -155,19 +173,30 @@ export async function runDrafting(
       })
     }
 
-    return summarise(startedAt, pending.length, tenders, errors)
+    return summarise(startedAt, pending.length, tenders, errors, grok.model)
   }
 
   for (const row of pending) {
     tenders.push(await processTender(supabase, grok, row))
   }
 
-  return summarise(startedAt, pending.length, tenders, errors)
+  return summarise(startedAt, pending.length, tenders, errors, grok.model)
+}
+
+/** Best effort model name for a summary produced before a client could be built. */
+function grokModelOf(options: RunOptions): string {
+  if (options.client) return options.client.model
+
+  try {
+    return aiModel()
+  } catch {
+    return 'unconfigured'
+  }
 }
 
 async function processTender(
   supabase: SupabaseAdminClient,
-  grok: GrokClient,
+  grok: AiClient,
   pending: PendingDraft,
 ): Promise<TenderDraftResult> {
   const result: TenderDraftResult = {
@@ -336,6 +365,7 @@ function summarise(
   pending: number,
   tenders: TenderDraftResult[],
   errors: string[],
+  model: string,
 ): DraftingRunSummary {
   const finishedAt = new Date()
 
@@ -343,7 +373,7 @@ function summarise(
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
-    model: process.env.GROK_MODEL?.trim() || 'grok-4.6',
+    model,
     emailConfigured: resendConfigured(),
     pending,
     tenders,

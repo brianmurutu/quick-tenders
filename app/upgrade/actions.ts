@@ -12,6 +12,7 @@ import {
   paystackPlanCode,
 } from '@/lib/paystack'
 import { normaliseKenyanPhone } from '@/lib/sms/textsms'
+import { notifyAdminOfPayment } from '@/lib/email/admin-notification'
 
 export type InitPaymentResult =
   | { status: 'ok'; accessCode: string; reference: string; amountMinor: number }
@@ -304,6 +305,15 @@ export async function verifyPayment(
         .eq('id', companyId)
     }
   }
+
+  // Asynchronously notify admin of successful payment
+  void notifyAdminOfPayment({
+    email: verification.customerEmail,
+    amountKes: verification.amountMinor / 100,
+    planName: expectedPlan?.name ?? 'Quick Tenders Paid Plan',
+    reference,
+    paymentMethod: verification.metadata?.payment_method as string | undefined,
+  })
 
   return {
     status: 'paid',

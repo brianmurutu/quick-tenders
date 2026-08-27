@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { isValidPlanAmountMinor, verifyWebhookSignature } from '@/lib/paystack'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyAdminOfPayment } from '@/lib/email/admin-notification'
 import type { Json } from '@/types/database'
 
 /**
@@ -121,6 +122,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
 
       console.log(`[paystack-webhook] charge.success for company ${companyId}`)
+
+      void notifyAdminOfPayment({
+        email: customerEmail,
+        amountKes: amountKes / 100,
+        reference,
+        paymentMethod: (eventData.metadata?.payment_method as string | undefined) ?? 'Paystack Webhook',
+      })
+
       break
     }
 

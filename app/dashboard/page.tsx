@@ -19,6 +19,8 @@ import {
 } from '@/lib/tender-status'
 import { formatTrialDate, trialState } from '@/lib/trial'
 
+import { AutomationTrigger } from './automation-trigger'
+
 export const metadata: Metadata = {
   title: 'Dashboard | Quick Tenders',
   description: 'Matched tenders for your company.',
@@ -111,7 +113,10 @@ export default async function DashboardPage({
           ) : null}
         </div>
 
-        <nav aria-label="Filter by status" className="mt-10 border-b border-slate-200">
+        {/* On-Demand Presentation Automation Controls */}
+        <AutomationTrigger initialMatchedCount={counts.all} />
+
+        <nav aria-label="Filter by status" className="mt-8 border-b border-slate-200">
           <ul className="-mb-px flex flex-wrap gap-1">
             {TENDER_TABS.map((entry) => (
               <li key={entry.key}>
@@ -237,7 +242,7 @@ function TabLink({
 function EmptyState({ tab, totalMatched }: { tab: TenderTab; totalMatched: number }) {
   const message =
     totalMatched === 0
-      ? 'The agent has not matched anything to your profile yet. Matching runs on a schedule, so new tenders appear here without you doing anything.'
+      ? 'The matching agent has not run yet. Click "Run Full Automation" or "Find & Match Tenders" in the control bar above to run the AI agent live on-demand.'
       : tab === 'all'
         ? 'Nothing to show.'
         : `No tenders are ${tab} right now.`

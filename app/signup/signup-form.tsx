@@ -11,6 +11,7 @@ import {
   type SignUpFieldErrors,
   type SignUpInput,
 } from '@/lib/signup'
+import { INDUSTRIES, MAX_SECTORS, SECTORS } from '@/lib/company-profile'
 
 import { signUp, type SignUpResult } from './actions'
 
@@ -34,7 +35,7 @@ export function SignupForm({ initialError }: { initialError?: string }) {
 
   const submitting = status === 'submitting'
 
-  function update<K extends keyof SignUpInput>(field: K, value: string) {
+  function update<K extends keyof SignUpInput>(field: K, value: SignUpInput[K]) {
     setValues((current) => ({ ...current, [field]: value }))
 
     // Clear a field error as soon as the user starts fixing it.
@@ -42,6 +43,26 @@ export function SignupForm({ initialError }: { initialError?: string }) {
       if (!current[field]) return current
       const next = { ...current }
       delete next[field]
+      return next
+    })
+  }
+
+  function toggleSector(sector: string) {
+    setValues((current) => {
+      const selected = current.sectors_of_interest
+
+      return {
+        ...current,
+        sectors_of_interest: selected.includes(sector)
+          ? selected.filter((item) => item !== sector)
+          : [...selected, sector],
+      }
+    })
+
+    setFieldErrors((current) => {
+      if (!current.sectors_of_interest) return current
+      const next = { ...current }
+      delete next.sectors_of_interest
       return next
     })
   }
@@ -157,6 +178,10 @@ export function SignupForm({ initialError }: { initialError?: string }) {
     )
   }
 
+  const selectedSectors = values.sectors_of_interest.length
+  const sectorsHintId = `${formId}-sectors-hint`
+  const sectorsErrorId = `${formId}-sectors-error`
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {formError ? (
@@ -224,7 +249,6 @@ export function SignupForm({ initialError }: { initialError?: string }) {
       <Field
         id={`${formId}-company-name`}
         label="Company name"
-        hint="You will pick your industry, sectors and county on the next screen."
         error={fieldErrors.companyName}
       >
         {(props) => (
@@ -238,6 +262,85 @@ export function SignupForm({ initialError }: { initialError?: string }) {
           />
         )}
       </Field>
+
+      <Field
+        id={`${formId}-industry`}
+        label="Category your company falls under"
+        hint="This is the profile the agent scores every tender against, so it is worth getting right."
+        error={fieldErrors.industry}
+      >
+        {(props) => (
+          <select
+            {...props}
+            name="industry"
+            value={values.industry}
+            onChange={(event) => update('industry', event.target.value)}
+          >
+            <option value="">Select a category</option>
+            {INDUSTRIES.map((industry) => (
+              <option key={industry} value={industry}>
+                {industry}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+
+      <fieldset
+        aria-describedby={`${
+          fieldErrors.sectors_of_interest ? `${sectorsErrorId} ` : ''
+        }${sectorsHintId}`}
+        aria-invalid={fieldErrors.sectors_of_interest ? true : undefined}
+      >
+        <legend className="text-sm font-semibold text-slate-900">
+          Sectors you want tenders for
+        </legend>
+
+        {fieldErrors.sectors_of_interest ? (
+          <p id={sectorsErrorId} className="mt-2 text-sm font-medium text-red-700">
+            {fieldErrors.sectors_of_interest}
+          </p>
+        ) : null}
+
+        <p id={sectorsHintId} className="mt-2 text-sm leading-relaxed text-slate-500">
+          Pick between 1 and {MAX_SECTORS}. Narrower profiles match better than
+          broad ones. Selected {selectedSectors} of {MAX_SECTORS}.
+        </p>
+
+        <div className="mt-4 grid max-h-64 gap-x-6 gap-y-3 overflow-y-auto rounded-md border border-slate-200 p-4 sm:grid-cols-2">
+          {SECTORS.map((sector) => {
+            const checked = values.sectors_of_interest.includes(sector)
+            const atLimit = !checked && selectedSectors >= MAX_SECTORS
+
+            return (
+              <label
+                key={sector}
+                className={`flex items-start gap-3 text-sm ${
+                  atLimit
+                    ? 'cursor-not-allowed text-slate-400'
+                    : 'cursor-pointer text-slate-700'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  name="sectors_of_interest"
+                  value={sector}
+                  checked={checked}
+                  disabled={atLimit}
+                  onChange={() => toggleSector(sector)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed"
+                />
+                <span>{sector}</span>
+              </label>
+            )
+          })}
+        </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-slate-500">
+          You will add your county and company size on the next screen, and you can
+          change any of this later.
+        </p>
+      </fieldset>
 
       <button
         type="submit"

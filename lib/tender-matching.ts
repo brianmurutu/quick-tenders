@@ -1,5 +1,5 @@
 /**
- * Relevance scoring, via the xAI Grok API.
+ * Relevance scoring, via the configured LLM provider (see lib/ai.ts).
  *
  * One call handles one company against a batch of tenders, rather than one call
  * per tender. A company profile is the expensive part of the prompt and it is
@@ -7,13 +7,12 @@
  * roughly the batch size. Batches are capped because output quality falls off
  * when a model is asked for too many structured items at once.
  *
- * Grok is asked for JSON-only output, then its response is fully validated.
+ * The model is asked for JSON-only output, then its response is fully validated.
  */
 
 import type { RawTender } from '@/lib/tender-sources'
-import { createGrokClient, grokModel, type GrokClient } from '@/lib/grok'
+import { aiModel, createAiClient, type AiClient } from '@/lib/ai'
 
-export const DEFAULT_MODEL = 'grok-4.6'
 export const DEFAULT_THRESHOLD = 60
 export const MAX_BATCH_SIZE = 20
 export const MAX_SUMMARY_LENGTH = 400
@@ -134,7 +133,7 @@ export function parseScores(input: unknown, batch: RawTender[]): TenderScore[] {
 }
 
 export function scoringModel(): string {
-  return grokModel()
+  return aiModel()
 }
 
 export function matchThreshold(): number {
@@ -153,7 +152,7 @@ export function matchThreshold(): number {
 
 /** Scores one batch. Throws on API failure so the caller can decide. */
 export async function scoreBatch(
-  client: GrokClient,
+  client: AiClient,
   company: ScoringCompany,
   batch: RawTender[],
 ): Promise<TenderScore[]> {
@@ -174,7 +173,7 @@ export async function scoreBatch(
   return parseScores(response, batch)
 }
 
-export { createGrokClient }
+export { createAiClient }
 
 /**
  * Scores every tender for one company, batch by batch.
@@ -185,7 +184,7 @@ export { createGrokClient }
  * and the rest continue.
  */
 export async function scoreTendersForCompany(
-  client: GrokClient,
+  client: AiClient,
   company: ScoringCompany,
   tenders: RawTender[],
 ): Promise<{ scores: TenderScore[]; errors: string[] }> {

@@ -6,6 +6,7 @@ import {
   type CompanyProfileErrors,
 } from '@/lib/company-profile'
 import { normaliseKenyanPhone } from '@/lib/sms/textsms'
+import { notifyAdminOfSignup } from '@/lib/email/admin-notification'
 import { createClient } from '@/lib/supabase/server'
 
 export type SaveProfileResult =
@@ -107,6 +108,15 @@ export async function saveCompanyProfile(
         .eq('id', user.id)
     }
   }
+
+  // Asynchronously notify admin of completed profile setup
+  void notifyAdminOfSignup({
+    fullName: user.user_metadata?.full_name ?? user.email ?? 'Representative',
+    email: user.email ?? '',
+    companyName: user.user_metadata?.company_name ?? 'Company',
+    industry: profile.industry,
+    sectors: profile.sectors_of_interest,
+  })
 
   return { status: 'saved' }
 }

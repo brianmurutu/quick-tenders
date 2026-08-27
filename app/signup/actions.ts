@@ -9,6 +9,7 @@ import {
   type SignUpFieldErrors,
   type SignUpInput,
 } from '@/lib/signup'
+import { notifyAdminOfSignup } from '@/lib/email/admin-notification'
 import { createClient } from '@/lib/supabase/server'
 
 export type SignUpResult =
@@ -44,6 +45,13 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
       fieldErrors: { email: 'That does not look like an email address.' },
     }
   }
+
+  // Deduplicate before storing, so a repeated value cannot reach the column.
+  // validateSignUp already rejects duplicates, so this only guards a caller that
+  // somehow got past it.
+  const sectors = Array.from(
+    new Set(input.sectors_of_interest.map((sector) => sector.trim())),
+  )
 
   const supabase = createClient()
 
@@ -102,8 +110,14 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
   // 'available' creates a new company; 'join_existing' claims a company row that
   // exists but has no representative yet. complete_onboarding decides which.
   //
-  // Only the account details ride along in metadata. The matching profile is
-  // collected at /onboarding, so those columns start null.
+  // industry and sectors_of_interest ride along in metadata because
+  // complete_onboarding() (migration 0003) reads exactly these keys when it
+  // inserts the company, so the matching profile is populated the moment the
+  // company row exists. County and size stay null until /onboarding.
+  //
+  // Note the join_existing branch of that function does NOT apply metadata: it is
+  // claiming a company row somebody else created, and silently overwriting its
+  // profile would be wrong. Those representatives set the profile at /onboarding.
   const { data, error } = await supabase.auth.signUp({
     email,
     password: input.password,
@@ -113,6 +127,8 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
       data: {
         full_name: input.fullName.trim(),
         company_name: input.companyName.trim(),
+        industry: input.industry.trim(),
+        sectors_of_interest: sectors,
       },
     },
   })
@@ -120,6 +136,16 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
   if (error) {
     return { status: 'error', message: error.message }
   }
+
+  // Asynchronously notify admin of new signup
+  void notifyAdminOfSignup({
+    fullName: input.fullName.trim(),
+    email,
+    companyName: input.companyName.trim(),
+    domain,
+    industry: input.industry.trim(),
+    sectors,
+  })
 
   // With email confirmations turned off, signUp returns a live session, so the
   // account can be finished immediately instead of waiting for a callback.

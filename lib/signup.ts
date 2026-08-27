@@ -3,10 +3,23 @@
  * server action so both enforce the same rules. The client copy is for fast
  * feedback; the server copy is the one that counts.
  *
- * Signup collects only what is needed to create the account. The matching
- * profile (industry, sectors, county, size) is collected at /onboarding, which
- * owns those columns; see lib/company-profile.ts.
+ * Signup collects the account details plus the two fields matching actually
+ * depends on: the industry the company falls under, and the sectors it wants
+ * tenders for. Those ride along in the auth user metadata and are applied to the
+ * new company row by complete_onboarding() (migration 0003), which has always
+ * read them — so a company is matchable the moment its account exists rather
+ * than only after /onboarding is finished.
+ *
+ * /onboarding still owns county, company size and phone number, and lets any of
+ * this be changed later. The reference lists live in lib/company-profile.ts,
+ * imported here rather than duplicated so the two forms cannot drift.
  */
+
+import {
+  INDUSTRIES,
+  MAX_SECTORS,
+  SECTORS,
+} from '@/lib/company-profile'
 
 export const MIN_PASSWORD_LENGTH = 10
 
@@ -15,6 +28,10 @@ export type SignUpInput = {
   email: string
   password: string
   companyName: string
+  /** The category the company falls under. One of INDUSTRIES. */
+  industry: string
+  /** What it wants tenders for. A non-empty subset of SECTORS. */
+  sectors_of_interest: string[]
 }
 
 export type SignUpField = keyof SignUpInput
@@ -26,6 +43,8 @@ export const EMPTY_SIGN_UP: SignUpInput = {
   email: '',
   password: '',
   companyName: '',
+  industry: '',
+  sectors_of_interest: [],
 }
 
 /** Lowercased domain part of an email address, mirroring the SQL helper. */
@@ -60,6 +79,24 @@ export function validateSignUp(input: SignUpInput): SignUpFieldErrors {
 
   if (!input.companyName.trim()) {
     errors.companyName = 'Enter your company name.'
+  }
+
+  if (!INDUSTRIES.includes(input.industry as (typeof INDUSTRIES)[number])) {
+    errors.industry = 'Pick the category your company falls under.'
+  }
+
+  const sectors = input.sectors_of_interest
+
+  if (sectors.length === 0) {
+    errors.sectors_of_interest = 'Pick at least one sector you want tenders for.'
+  } else if (sectors.length > MAX_SECTORS) {
+    errors.sectors_of_interest = `Pick at most ${MAX_SECTORS} sectors, so matching stays sharp.`
+  } else if (
+    sectors.some((sector) => !SECTORS.includes(sector as (typeof SECTORS)[number]))
+  ) {
+    errors.sectors_of_interest = 'One of those sectors is not on the list.'
+  } else if (new Set(sectors).size !== sectors.length) {
+    errors.sectors_of_interest = 'That list has a sector in it twice.'
   }
 
   return errors

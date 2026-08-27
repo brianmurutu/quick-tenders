@@ -1,5 +1,6 @@
 /**
- * Drafts the two bid documents for one match, via the xAI Grok API.
+ * Drafts the two bid documents for one match, via the configured LLM provider
+ * (see lib/ai.ts).
  *
  * The output is explicitly a STARTING POINT, not a submission. The prompt forbids
  * inventing anything factual: no certifications, no past contracts, no staff
@@ -10,7 +11,7 @@
  */
 
 import { buildDocx, type DocxBlock } from '@/lib/docx'
-import type { GrokClient } from '@/lib/grok'
+import type { AiClient } from '@/lib/ai'
 import {
   DOCUMENT_LABELS,
   DOCUMENT_TYPES,
@@ -230,7 +231,7 @@ export function draftToBlocks(
 
 /** Drafts one document. Throws on API failure so the caller can decide. */
 export async function draftDocument(
-  client: GrokClient,
+  client: AiClient,
   docType: DraftDocumentType,
   context: DraftContext,
 ): Promise<DraftDocument | null> {

@@ -7,12 +7,13 @@
  */
 
 import {
-  createGrokClient,
+  createAiClient,
   matchThreshold,
   scoreTendersForCompany,
   scoringModel,
   type ScoringCompany,
 } from '@/lib/tender-matching'
+import type { AiClient } from '@/lib/ai'
 import {
   dropExpired,
   enabledSourceIds,
@@ -106,10 +107,20 @@ async function existingSourceUrls(
 }
 
 export type RunOptions = {
-  /** Skip the Grok and database work, to check source health only. */
+  /** Skip the AI and database work, to check source health only. */
   dryRun?: boolean
   /** Overrides TENDER_SOURCES for one run. */
   sourceIds?: string[]
+  /**
+   * Restricts scoring to one company. Used by the verification harness so a test
+   * account can be driven end to end without spending tokens on every tenant.
+   */
+  companyId?: string
+  /**
+   * Overrides the LLM client. Production leaves this unset; the verification
+   * harness passes a deterministic stand-in. See scripts/verify-pipeline.mjs.
+   */
+  client?: AiClient
 }
 
 export async function runDiscovery(
@@ -126,14 +137,16 @@ export async function runDiscovery(
   const companies: CompanyRunResult[] = []
   const companiesSkipped: DiscoveryRunSummary['companiesSkipped'] = []
   let considered = 0
+  let model = 'unconfigured'
 
   if (!options.dryRun && tenders.length > 0) {
     let supabase: SupabaseAdminClient
-    let grok: ReturnType<typeof createGrokClient>
+    let grok: AiClient
 
     try {
       supabase = createAdminClient()
-      grok = createGrokClient()
+      grok = options.client ?? createAiClient()
+      model = grok.model
     } catch (error) {
       // Missing configuration is fatal for the scoring half, but the source
       // summary above is still worth returning.
@@ -150,6 +163,7 @@ export async function runDiscovery(
         companiesSkipped,
         companies,
         errors,
+        model,
       })
     }
 
@@ -161,7 +175,11 @@ export async function runDiscovery(
       errors.push(error instanceof Error ? error.message : String(error))
     }
 
-    for (const company of allCompanies) {
+    const selected = options.companyId
+      ? allCompanies.filter((company) => company.id === options.companyId)
+      : allCompanies
+
+    for (const company of selected) {
       if (!profileIsUsable(company)) {
         companiesSkipped.push({
           companyId: company.id,
@@ -187,12 +205,13 @@ export async function runDiscovery(
     companiesSkipped,
     companies,
     errors,
+    model,
   })
 }
 
 async function runForCompany(
   supabase: SupabaseAdminClient,
-  grok: ReturnType<typeof createGrokClient>,
+  grok: AiClient,
   company: ScoringCompany,
   tenders: RawTender[],
   threshold: number,
@@ -268,6 +287,19 @@ async function runForCompany(
   return result
 }
 
+/**
+ * The model name for a summary produced without a client, such as a dry run.
+ * scoringModel() throws when no provider is configured, and a dry run reporting
+ * on source health should not fail just because there is no API key.
+ */
+function safeScoringModel(): string {
+  try {
+    return scoringModel()
+  } catch {
+    return 'unconfigured'
+  }
+}
+
 function summarise(input: {
   startedAt: Date
   threshold: number
@@ -279,6 +311,7 @@ function summarise(input: {
   companiesSkipped: DiscoveryRunSummary['companiesSkipped']
   companies: CompanyRunResult[]
   errors: string[]
+  model?: string
 }): DiscoveryRunSummary {
   const finishedAt = new Date()
 
@@ -286,7 +319,7 @@ function summarise(input: {
     startedAt: input.startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt.getTime() - input.startedAt.getTime(),
-    model: scoringModel(),
+    model: input.model ?? safeScoringModel(),
     threshold: input.threshold,
     sourcesRequested: input.requested,
     sources: input.sources,
