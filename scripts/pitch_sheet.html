@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quick Tenders — 6-Minute Presentation Cue Sheet</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    background-color: #ffffff;
+    line-height: 1.45;
+    font-size: 13px;
+  }
+  header {
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 3px;
+  }
+  .meta-tag {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .timeline-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 18px;
+    font-size: 12px;
+  }
+  .timeline-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-align: left;
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+  }
+  .timeline-table td {
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+  }
+  .timeline-table tr:nth-child(even) {
+    background-color: #fcfcfd;
+  }
+  .section-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: #ffffff;
+    page-break-inside: avoid;
+  }
+  .section-header {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 7px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .time-badge {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .section-body {
+    padding: 10px 12px;
+  }
+  ul {
+    margin-left: 18px;
+    margin-bottom: 8px;
+  }
+  li {
+    margin-bottom: 3px;
+    color: #334155;
+  }
+  li strong {
+    color: #0f172a;
+  }
+  .script-box {
+    background-color: #f8fafc;
+    border-left: 3px solid #2563eb;
+    padding: 7px 10px;
+    font-style: italic;
+    color: #334155;
+    border-radius: 0 4px 4px 0;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .script-box strong {
+    font-style: normal;
+    color: #1d4ed8;
+  }
+  .qa-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .qa-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+  }
+  .qa-q {
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 3px;
+  }
+  .qa-a {
+    color: #475569;
+  }
+  .page-break {
+    page-break-after: always;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Quick Tenders — 6-Minute Pitch Guide</h1>
+    <div class="subtitle">Autonomous AI Agent for Tender Discovery, Relevance Matching & Bid Proposal Drafting</div>
+  </div>
+  <div class="meta-tag">⏱️ Target: 6:00 Total</div>
+</header>
+
+<table class="timeline-table">
+  <thead>
+    <tr>
+      <th style="width: 15%;">Time</th>
+      <th style="width: 25%;">Phase</th>
+      <th style="width: 60%;">Focus & Objectives</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>0:00 – 0:45</strong></td>
+      <td><strong>The Problem</strong></td>
+      <td>Fragmented procurement portals (PPIP/County), missed deadlines, 16+ hrs drafting friction</td>
+    </tr>
+    <tr>
+      <td><strong>0:45 – 1:45</strong></td>
+      <td><strong>The Solution</strong></td>
+      <td>Quick Tenders overview: Continuous discovery + AI scoring + auto-bid drafting</td>
+    </tr>
+    <tr>
+      <td><strong>1:45 – 3:15</strong></td>
+      <td><strong>Live Workflow</strong></td>
+      <td>Ingestion $\rightarrow$ AI scoring (e.g. 88%) $\rightarrow$ Zero-touch editable DOCX $\rightarrow$ SMS/Email alerts</td>
+    </tr>
+    <tr>
+      <td><strong>3:15 – 4:15</strong></td>
+      <td><strong>Tech Architecture</strong></td>
+      <td>Next.js 14, Supabase RLS multi-tenancy, Groq/Llama-3.3 + xAI Grok, zero-dep DOCX engine</td>
+    </tr>
+    <tr>
+      <td><strong>4:15 – 5:15</strong></td>
+      <td><strong>Market & Business</strong></td>
+      <td>Paystack subscription billing, regional SME contract focus, 16 hrs $\rightarrow$ 15 min ROI</td>
+    </tr>
+    <tr>
+      <td><strong>5:15 – 6:00</strong></td>
+      <td><strong>Roadmap & Close</strong></td>
+      <td>Portal auto-submissions, win-rate analytics, compliance vault, open for Q&A</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- SECTION 1 -->
+<div class="section-card">
+  <div class="section-header">
+    <span class="section-title">1. The Hook & The Problem</span>
+    <span class="time-badge">0:00 – 0:45 (45s)</span>
+  </div>
+  <div class="section-body">
+    <ul>
+      <li><strong>Scale:</strong> Billions in public/private tenders are published annually across PPIP and regional boards.</li>
+      <li><strong>Friction:</strong> Fragmented portals require daily manual checks; rigid deadlines close without warning.</li>
+      <li><strong>Bottleneck:</strong> Preparing compliance documentation and proposal skeletons takes 2–3 days per bid.</li>
+    </ul>
+    <div class="script-box">
+      <strong>Script:</strong> "Every week, thousands of high-value tenders are posted across disjointed portals. For growing businesses, finding them in time and drafting compliance bids takes days of tedious paperwork. Most SMEs simply lack the staff to keep up."
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2 -->
+<div class="section-card">
+  <div class="section-header">
+    <span class="section-title">2. The Solution — Quick Tenders</span>
+    <span class="time-badge">0:45 – 1:45 (60s)</span>
+  </div>
+  <div class="section-body">
+    <ul>
+      <li><strong>Core Concept:</strong> Autonomous procurement agent for discovery, precision matching, and bid generation.</li>
+      <li><strong>Key Differentiator:</strong> Not just an alert newsletter—it produces full, customized submission documents.</li>
+      <li><strong>Efficiency Gain:</strong> Shrinks tender preparation time from <strong>16+ hours to 15 minutes</strong> of review.</li>
+    </ul>
+    <div class="script-box">
+      <strong>Script:</strong> "Quick Tenders solves this end-to-end. Our AI agent continuously monitors procurement feeds, matches opportunities against your company profile, and drafts the actual submission documents. You just review, sign, and send."
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3 -->
+<div class="section-card">
+  <div class="section-header">
+    <span class="section-title">3. Product Walkthrough & Workflow</span>
+    <span class="time-badge">1:45 – 3:15 (90s)</span>
+  </div>
+  <div class="section-body">
+    <ul>
+      <li><strong>Intelligent Scoring:</strong> Evaluates sector, industry, county proximity, and scale with clear fit scores (e.g. 85/100).</li>
+      <li><strong>Zero-Touch DOCX Drafting:</strong> Generates editable Word files (Cover Letter & Technical Proposal Skeleton).</li>
+      <li><strong>Multi-Channel Alerts:</strong> Real-time SMS (TextSMS) & Email (Resend) notifications with instant signed download links.</li>
+      <li><strong>Pipeline Tracking:</strong> Built-in CRM states: <em>New $\rightarrow$ Reviewed $\rightarrow$ Submitted</em> with deadline urgency badges.</li>
+    </ul>
+    <div class="script-box">
+      <strong>Script:</strong> "Here's the workflow in action: When a relevant tender appears, Quick Tenders scores the match and drafts a custom Cover Letter and Technical Proposal. The user downloads the editable Word file, adds their pricing, and marks it submitted. One rep can now run a 20-tender pipeline without any admin overhead."
+    </div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- SECTION 4 -->
+<div class="section-card">
+  <div class="section-header">
+    <span class="section-title">4. Technical Architecture & Engineering Highlights</span>
+    <span class="time-badge">3:15 – 4:15 (60s)</span>
+  </div>
+  <div class="section-body">
+    <ul>
+      <li><strong>Stack:</strong> Next.js 14 App Router, TypeScript, Tailwind CSS.</li>
+      <li><strong>Multi-Tenant Isolation:</strong> Supabase PostgreSQL with strict Row Level Security (RLS).</li>
+      <li><strong>Dual-LLM Engine:</strong> Groq (Llama 3.3 70B) for high-speed inference with automatic fallback to xAI Grok.</li>
+      <li><strong>Zero-Dependency DOCX Writer:</strong> Native streaming XML/ZIP generator via Node <code>zlib</code>—no bulky dependencies.</li>
+    </ul>
+    <div class="script-box">
+      <strong>Script:</strong> "We built Quick Tenders for speed, security, and enterprise reliability. Company data is protected via Supabase RLS. We use a dual-LLM setup with Groq and xAI Grok for ultra-fast matching, and an in-house zero-dependency DOCX writer that generates proposals instantly."
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5 -->
+<div class="section-card">
+  <div class="section-header">
+    <span class="section-title">5. Business Model & Market Fit</span>
+    <span class="time-badge">4:15 – 5:15 (60s)</span>
+  </div>
+  <div class="section-body">
+    <ul>
+      <li><strong>Billing:</strong> Scalable subscription tiers integrated with <strong>Paystack</strong> for seamless regional payments.</li>
+      <li><strong>Target Market:</strong> SME contractors, IT suppliers, logistics, medical distributors, and consulting firms.</li>
+      <li><strong>Clear ROI:</strong> Winning a single additional contract or saving 40+ hours/month delivers immediate 10x ROI.</li>
+    </ul>
+    <div class="script-box">
+      <strong>Script:</strong> "Our focus is on regional contractors and suppliers where procurement makes up a large share of business revenue. We monetize through simple subscription tiers via Paystack. The return on investment is immediate—saving dozens of staff hours on every single tender."
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 6 -->
+<div class="section-card">
+  <div class="section-header">
+    <span class="section-title">6. Roadmap & Closing</span>
+    <span class="time-badge">5:15 – 6:00 (45s)</span>
+  </div>
+  <div class="section-body">
+    <ul>
+      <li><strong>Roadmap:</strong> Direct e-procurement portal auto-submission, tender win-probability analytics, compliance document vault.</li>
+      <li><strong>Mission:</strong> Leveling the playing field so any ambitious business can win public procurement contracts.</li>
+    </ul>
+    <div class="script-box">
+      <strong>Script:</strong> "Our mission is to level the playing field so every business can compete and win tenders. Thank you, and I’m ready for your questions!"
+    </div>
+  </div>
+</div>
+
+<!-- Q&A CHEAT SHEET -->
+<div class="section-card" style="margin-top: 14px;">
+  <div class="section-header">
+    <span class="section-title">💡 Anticipated Q&A Cheat Sheet</span>
+    <span class="time-badge">Presenter Reference</span>
+  </div>
+  <div class="section-body">
+    <div class="qa-grid">
+      <div class="qa-card">
+        <div class="qa-q">Q: How are AI hallucinations prevented?</div>
+        <div class="qa-a">Prompts strictly constrain the model to explicit tender requirements and verified profile data, generating editable Word drafts that keep humans in the loop.</div>
+      </div>
+      <div class="qa-card">
+        <div class="qa-q">Q: Why editable DOCX instead of PDF?</div>
+        <div class="qa-a">Real tender submissions require customized item pricing, schedules, and authorized signatures. Word documents provide an actionable working draft.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
