@@ -3,9 +3,9 @@
  * `supabase gen types typescript` produces, so that `npm run db:types` can
  * overwrite this file once you have a project linked.
  *
- * One deliberate difference from the generator: `tenders_matched.status` is
- * typed as the TenderStatus union rather than `string`. The generator widens
- * check constraints to `string`; if you regenerate, re-narrow it here.
+ * Two deliberate differences from the generator: `tenders_matched.status` and
+ * `scrape_runs.status` are typed as unions rather than `string`. The generator
+ * widens check constraints to `string`; if you regenerate, re-narrow both here.
  */
 
 export type Json =
@@ -18,6 +18,23 @@ export type Json =
 
 /** Mirrors the check constraint on public.tenders_matched.status. */
 export type TenderStatus = 'new' | 'reviewed' | 'submitted' | 'expired'
+
+/** Mirrors the check constraint on public.scrape_runs.status. */
+export type ScrapeRunStatus = 'success' | 'partial' | 'failed'
+
+/**
+ * The notification types the pipeline emits today. Deliberately NOT a check
+ * constraint in the database (see 0008), so `notifications.type` stays `string`
+ * on the Row; use this where you need to switch on a known value.
+ */
+export type NotificationType =
+  | 'tender_matched'
+  | 'document_ready'
+  | 'trial_ending'
+  | 'trial_expired'
+
+/** The only values public.admin_set_company_plan accepts for companies.plan. */
+export type CompanyPlan = 'trial' | 'paid'
 
 /** Values of the `status` key returned by public.company_signup_status(). */
 export type SignupStatus =
@@ -261,9 +278,126 @@ export type Database = {
           },
         ]
       }
+      // Internal Quick Tenders staff (0008). A separate account type from
+      // representatives, not a role on it. Readable only by an admin, and
+      // writable only with the service role: there is no policy or grant that
+      // lets an admin mint another admin.
+      admin_users: {
+        Row: {
+          id: string
+          full_name: string | null
+          email: string
+          created_at: string
+        }
+        Insert: {
+          /** Must equal the auth.users id. There is no default. */
+          id: string
+          full_name?: string | null
+          email: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string | null
+          email?: string
+          created_at?: string
+        }
+        // id -> auth.users(id) is omitted for the same reason as on
+        // representatives: auth.users is outside the public schema.
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          representative_id: string | null
+          /** See NotificationType for the values the pipeline emits. */
+          type: string | null
+          title: string | null
+          body: string | null
+          link_url: string | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          representative_id?: string | null
+          type?: string | null
+          title?: string | null
+          body?: string | null
+          link_url?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        // A representative holds UPDATE on is_read and nothing else (0008), so
+        // only that key is reachable from a user session. The rest are writable
+        // with the service role.
+        Update: {
+          id?: string
+          representative_id?: string | null
+          type?: string | null
+          title?: string | null
+          body?: string | null
+          link_url?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_representative_id_fkey'
+            columns: ['representative_id']
+            isOneToOne: false
+            referencedRelation: 'representatives'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      // Discovery pipeline health (0008). Readable by admins only, written by
+      // the discovery job with the service role.
+      scrape_runs: {
+        Row: {
+          id: string
+          source: string | null
+          run_at: string
+          tenders_fetched: number | null
+          status: ScrapeRunStatus
+          error_message: string | null
+        }
+        Insert: {
+          id?: string
+          source?: string | null
+          run_at?: string
+          tenders_fetched?: number | null
+          status: ScrapeRunStatus
+          error_message?: string | null
+        }
+        Update: {
+          id?: string
+          source?: string | null
+          run_at?: string
+          tenders_fetched?: number | null
+          status?: ScrapeRunStatus
+          error_message?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
+      /**
+       * Admin only, enforced inside the function. Pushes trial_ends_at out by
+       * p_days (1-365) from today or the current end, whichever is later, and
+       * returns the new value. Exists because 0004 leaves trial_ends_at
+       * ungranted to every client role — see 0008.
+       */
+      admin_extend_trial: {
+        Args: { p_company_id: string; p_days: number }
+        Returns: string
+      }
+      /** Admin only, enforced inside the function. Returns the plan it set. */
+      admin_set_company_plan: {
+        Args: { p_company_id: string; p_plan: CompanyPlan }
+        Returns: string
+      }
       company_signup_status: {
         Args: { p_domain: string }
         /**
@@ -280,6 +414,15 @@ export type Database = {
       current_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string | null
+      }
+      /**
+       * True when the caller is Quick Tenders internal staff. Referenced by the
+       * admin RLS policies in 0008; callable directly to decide whether to
+       * render an admin surface, but never as the only gate — the policies are.
+       */
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       normalise_email_domain: {
         Args: { p_email: string }

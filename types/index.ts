@@ -6,7 +6,15 @@
 
 import type { Database, TenderStatus } from './database'
 
-export type { Database, Json, TenderStatus, SignupStatus } from './database'
+export type {
+  CompanyPlan,
+  Database,
+  Json,
+  NotificationType,
+  ScrapeRunStatus,
+  SignupStatus,
+  TenderStatus,
+} from './database'
 
 type PublicSchema = Database['public']
 
@@ -32,6 +40,17 @@ export type MatchedTenderUpdate = TablesUpdate<'tenders_matched'>
 export type TenderDocument = Tables<'tender_documents'>
 export type TenderDocumentInsert = TablesInsert<'tender_documents'>
 export type TenderDocumentUpdate = TablesUpdate<'tender_documents'>
+
+/** Internal Quick Tenders staff. Not a representative; see migration 0008. */
+export type AdminUser = Tables<'admin_users'>
+export type AdminUserInsert = TablesInsert<'admin_users'>
+
+export type Notification = Tables<'notifications'>
+export type NotificationInsert = TablesInsert<'notifications'>
+export type NotificationUpdate = TablesUpdate<'notifications'>
+
+export type ScrapeRun = Tables<'scrape_runs'>
+export type ScrapeRunInsert = TablesInsert<'scrape_runs'>
 
 /** Runtime counterpart to TenderStatus, for selects, filters and validation. */
 export const TENDER_STATUSES = [

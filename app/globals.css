@@ -8,7 +8,7 @@
  * would render text invisible on the page's white cards and sections.
  */
 :root {
-  --background: #ffffff;
+  --background: #fbfbfc;
   --foreground: #0f172a;
 }
 
