@@ -20,6 +20,7 @@ import {
 import { formatTrialDate, trialState } from '@/lib/trial'
 
 import { AutomationTrigger } from './automation-trigger'
+import { CronScheduleCard } from './cron-schedule-card'
 
 export const metadata: Metadata = {
   title: 'Dashboard | Quick Tenders',
@@ -115,6 +116,9 @@ export default async function DashboardPage({
 
         {/* On-Demand Presentation Automation Controls */}
         <AutomationTrigger initialMatchedCount={counts.all} />
+
+        {/* Automated Background AI Schedule (Cron) Settings */}
+        <CronScheduleCard />
 
         <nav aria-label="Filter by status" className="mt-8 border-b border-slate-200">
           <ul className="-mb-px flex flex-wrap gap-1">

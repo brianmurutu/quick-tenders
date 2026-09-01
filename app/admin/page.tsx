@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import type { ScrapeRunStatus } from '@/types/database'
 
+import { AdminResendAuthCard } from './_components/admin-resend-auth-card'
 import { SourceHealthRow } from './_components/source-health-row'
 import { StatTile } from './_components/stat-tile'
 import { SvgSparkline } from './_components/svg-sparkline'
@@ -253,6 +254,9 @@ export default async function AdminDashboardPage() {
           <StatTile label="Documents generated" value={metrics.docsTotal} />
         </div>
       </section>
+
+      {/* Auth recovery */}
+      <AdminResendAuthCard />
 
       {/* Trend charts */}
       <section aria-labelledby="trends-heading" className="space-y-4">

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { getSiteUrl } from '@/lib/env'
 import './globals.css'
 
 const description =
@@ -15,7 +16,7 @@ const description =
  * listing them again would emit duplicate <link> tags.
  */
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: 'Quick Tenders',
     template: '%s · Quick Tenders',
