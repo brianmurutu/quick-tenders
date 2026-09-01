@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatTrialDate, trialState } from '@/lib/trial'
 
-import { ExtendTrialForm, SetPlanForm } from './admin-action-forms'
+import { ExtendTrialForm, SetPlanForm, ResendRepAuthButton } from './admin-action-forms'
 
 export const dynamic = 'force-dynamic'
 
@@ -193,7 +193,10 @@ export default async function AdminCompanyDetailPage({ params }: { params: { id:
                   <p className="text-sm font-medium text-slate-900">{rep.full_name ?? '—'}</p>
                   <p className="text-xs text-slate-500">{rep.email}</p>
                 </div>
-                <p className="text-xs text-slate-400">Joined {formatDate(rep.created_at)}</p>
+                <div className="flex items-center gap-4">
+                  <p className="text-xs text-slate-400">Joined {formatDate(rep.created_at)}</p>
+                  <ResendRepAuthButton email={rep.email} />
+                </div>
               </li>
             ))}
           </ul>

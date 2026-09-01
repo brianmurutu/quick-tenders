@@ -4,6 +4,8 @@ import { useActionState } from 'react'
 
 import type { ExtendTrialState, SetPlanState } from './actions'
 import { extendTrialAction, setPlanAction } from './actions'
+import { resendAuthEmailAction, type ResendAuthResult } from '@/app/admin/auth-actions'
+import { useState, useTransition } from 'react'
 
 // ---------------------------------------------------------------------------
 // Extend trial form
@@ -139,3 +141,61 @@ export function SetPlanForm({
     </form>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Resend Auth for representative
+// ---------------------------------------------------------------------------
+
+export function ResendRepAuthButton({ email }: { email: string }) {
+  const [result, setResult] = useState<ResendAuthResult | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const [copied, setCopied] = useState(false)
+
+  function handleResend() {
+    setResult(null)
+    startTransition(async () => {
+      const res = await resendAuthEmailAction(email)
+      setResult(res)
+    })
+  }
+
+  function handleCopy() {
+    if (!result?.actionLink) return
+    void navigator.clipboard.writeText(result.actionLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <button
+        type="button"
+        onClick={handleResend}
+        disabled={isPending}
+        className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+      >
+        {isPending ? 'Sending…' : 'Resend Auth'}
+      </button>
+
+      {result && (
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-xs ${result.ok ? 'text-emerald-700' : 'text-red-600 font-medium'}`}
+          >
+            {result.ok ? 'Sent!' : result.message}
+          </span>
+          {result.actionLink && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="text-[11px] underline text-blue-600 hover:text-blue-800"
+            >
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
