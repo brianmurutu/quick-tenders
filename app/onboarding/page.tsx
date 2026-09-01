@@ -11,6 +11,7 @@ import {
 } from '@/lib/company-profile'
 import { createClient } from '@/lib/supabase/server'
 import { formatTrialDate, trialState } from '@/lib/trial'
+import { ensureUserOnboarded } from '@/lib/onboarding-recovery'
 
 import { OnboardingForm } from './onboarding-form'
 
@@ -38,13 +39,25 @@ export default async function OnboardingPage() {
   if (!user) redirect('/login?reason=sign_in_required&next=/onboarding')
 
   // RLS scopes this to the caller company, so no filter is needed.
-  const { data: company } = await supabase
+  let { data: company } = await supabase
     .from('companies')
     .select('name, domain, industry, sectors_of_interest, region, company_size, plan, trial_ends_at')
     .limit(1)
     .maybeSingle()
 
-  // Authenticated but with no company means onboarding never completed.
+  // Authenticated but with no company: attempt automatic recovery
+  if (!company) {
+    const recovery = await ensureUserOnboarded(user.id)
+    if (recovery.ok) {
+      const retry = await supabase
+        .from('companies')
+        .select('name, domain, industry, sectors_of_interest, region, company_size, plan, trial_ends_at')
+        .limit(1)
+        .maybeSingle()
+      company = retry.data
+    }
+  }
+
   if (!company) redirect('/signup?error=onboarding_failed')
 
   const trial = trialState(company)

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
 import { safeRelativePath } from '@/lib/url'
+import { ensureUserOnboarded } from '@/lib/onboarding-recovery'
 
 /**
  * Maps the onboarding RPC failures onto the ?error= codes the signup page knows
@@ -46,20 +47,30 @@ export async function GET(request: NextRequest) {
 
   const supabase = createClient()
 
+  let userId: string | undefined
+
   if (usesCode) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code as string)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code as string)
     if (error) return back('confirmation_failed')
+    userId = data.user?.id
   } else {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash as string,
       type: type as EmailOtpType,
     })
     if (error) return back('confirmation_failed')
+    userId = data.user?.id
   }
 
   const { error: onboardingError } = await supabase.rpc('complete_onboarding')
 
   if (onboardingError) {
+    if (userId) {
+      const recovery = await ensureUserOnboarded(userId)
+      if (recovery.ok) {
+        return NextResponse.redirect(new URL(next, url.origin))
+      }
+    }
     return back(onboardingErrorCode(onboardingError.message))
   }
 
