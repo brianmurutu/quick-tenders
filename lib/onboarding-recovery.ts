@@ -29,11 +29,13 @@ export async function ensureUserOnboarded(userId: string): Promise<{ ok: boolean
     const domain = email.split('@')[1]?.trim()
     if (!domain) return { ok: false, error: 'Invalid email domain' }
 
-    const meta = (authUser.user.user_metadata || {}) as Record<string, any>
-    const companyName = meta.company_name || domain
-    const fullName = meta.full_name || ''
-    const industry = meta.industry || null
-    const sectors = Array.isArray(meta.sectors_of_interest) ? meta.sectors_of_interest : null
+    const meta = (authUser.user.user_metadata || {}) as Record<string, unknown>
+    const companyName = typeof meta.company_name === 'string' ? meta.company_name : domain
+    const fullName = typeof meta.full_name === 'string' ? meta.full_name : ''
+    const industry = typeof meta.industry === 'string' ? meta.industry : null
+    const sectors = Array.isArray(meta.sectors_of_interest)
+      ? (meta.sectors_of_interest.filter((s): s is string => typeof s === 'string'))
+      : null
 
     // 3. Find or create company
     let { data: company } = await admin
