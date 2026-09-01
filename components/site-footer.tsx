@@ -35,20 +35,24 @@ const footerGroups = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white">
-      <div className={`${container} py-16 lg:py-20`}>
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`${container} py-10 lg:py-12`}>
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Logo />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-600">
-              An AI agent that finds matching tenders and drafts the bids, so one
-              representative can cover the whole pipeline.
+              Kenya&apos;s AI agent for tender discovery and automated bid drafting.
+              Empowering local suppliers and contractors to win more government and private contracts.
             </p>
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-emerald-600" />
+              <span>Monitoring PPIP &amp; 47 Counties</span>
+            </div>
           </div>
 
           {footerGroups.map((group) => (
             <div key={group.heading}>
               <h2 className="text-sm font-semibold text-slate-900">{group.heading}</h2>
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-3.5 space-y-2.5">
                 {group.links.map((link) => (
                   <li key={link.href}>
                     <Link
@@ -64,16 +68,18 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-slate-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
+        <div className="mt-10 flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">
             &copy; <CopyrightYear initialYear={new Date().getFullYear()} /> Quick
-            Tenders. All rights reserved.
+            Tenders Kenya. All rights reserved.
           </p>
-          <p className="text-sm text-slate-500">
-            Drafts are a starting point. Always review before you submit.
+          <p className="text-xs text-slate-500">
+            Drafts are a starting point. Always review against PPADA tender requirements before submission.
           </p>
         </div>
       </div>
+      {/* Kenyan national ribbon accent */}
+      <div className="kenya-stripe h-[3px] w-full" aria-hidden="true" />
     </footer>
   )
 }

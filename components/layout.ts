@@ -13,13 +13,13 @@
  */
 
 /** Width and gutters for a full-width band's content. */
-export const container = 'mx-auto max-w-6xl px-6 lg:px-8'
+export const container = 'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8'
 
-/** Vertical padding for a full-width band. */
-export const sectionY = 'py-16 sm:py-20 lg:py-28'
+/** Vertical padding for a full-width band - tightened for sleek density. */
+export const sectionY = 'py-10 sm:py-12 lg:py-16'
 
 /**
  * Gap between a band's heading block and its content. Scales with `sectionY`
  * so the space inside a section stays proportional to the space around it.
  */
-export const sectionHeaderGap = 'mt-12 lg:mt-16'
+export const sectionHeaderGap = 'mt-7 lg:mt-9'

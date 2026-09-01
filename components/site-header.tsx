@@ -15,8 +15,10 @@ const navLinks = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-      <div className={`${container} flex h-16 items-center justify-between`}>
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+      {/* Kenyan national ribbon accent */}
+      <div className="kenya-stripe h-[3px] w-full" aria-hidden="true" />
+      <div className={`${container} flex h-14 sm:h-16 items-center justify-between`}>
         <Link
           href="/"
           className="rounded-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"

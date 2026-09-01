@@ -32,3 +32,34 @@ body {
     scroll-behavior: smooth;
   }
 }
+
+/* Kenyan Flag tricolor gradient bar */
+.kenya-stripe {
+  background: linear-gradient(
+    to right,
+    #000000 0%,
+    #000000 30%,
+    #ffffff 30%,
+    #ffffff 33%,
+    #bb1b1b 33%,
+    #bb1b1b 67%,
+    #ffffff 67%,
+    #ffffff 70%,
+    #006600 70%,
+    #006600 100%
+  );
+}
+
+/* Subtle Kenyan procurement background grid pattern */
+.bg-procurement-grid {
+  background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px),
+    radial-gradient(rgba(0, 102, 0, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px, 48px 48px;
+  background-position: 0 0, 12px 12px;
+}
+
+/* Subtle Kenya security watermark / beadwork border accent */
+.border-kenya-subtle {
+  border-image: linear-gradient(to right, #000000, #bb1b1b, #006600) 1;
+}
+
