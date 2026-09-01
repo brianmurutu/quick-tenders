@@ -1,11 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useState, useTransition } from 'react'
 
 import type { ExtendTrialState, SetPlanState } from './actions'
 import { extendTrialAction, setPlanAction } from './actions'
 import { resendAuthEmailAction, type ResendAuthResult } from '@/app/admin/auth-actions'
-import { useState, useTransition } from 'react'
 
 // ---------------------------------------------------------------------------
 // Extend trial form
@@ -20,8 +19,8 @@ export function ExtendTrialForm({
   companyId: string
   currentEndsAt: string
 }) {
-  const bound = extendTrialAction.bind(null, companyId)
-  const [state, formAction, pending] = useActionState(bound, EXTEND_INITIAL)
+  const [state, setState] = useState<ExtendTrialState>(EXTEND_INITIAL)
+  const [isPending, startTransition] = useTransition()
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString('en-GB', {
@@ -32,8 +31,15 @@ export function ExtendTrialForm({
     })
   }
 
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const res = await extendTrialAction(companyId, state, formData)
+      setState(res)
+    })
+  }
+
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={handleSubmit} className="space-y-3">
       <div className="flex items-end gap-3">
         <div>
           <label
@@ -55,10 +61,10 @@ export function ExtendTrialForm({
         </div>
         <button
           type="submit"
-          disabled={pending}
+          disabled={isPending}
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
         >
-          {pending ? 'Extending…' : 'Extend trial'}
+          {isPending ? 'Extending…' : 'Extend trial'}
         </button>
       </div>
 
@@ -94,13 +100,20 @@ export function SetPlanForm({
   companyId: string
   currentPlan: string
 }) {
-  const bound = setPlanAction.bind(null, companyId)
-  const [state, formAction, pending] = useActionState(bound, SET_PLAN_INITIAL)
+  const [state, setState] = useState<SetPlanState>(SET_PLAN_INITIAL)
+  const [isPending, startTransition] = useTransition()
 
   const displayPlan = state.newPlan ?? currentPlan
 
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const res = await setPlanAction(companyId, state, formData)
+      setState(res)
+    })
+  }
+
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={handleSubmit} className="space-y-3">
       <fieldset>
         <legend className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
           Plan
@@ -113,7 +126,7 @@ export function SetPlanForm({
                 name="plan"
                 value={plan}
                 defaultChecked={displayPlan === plan}
-                key={displayPlan} // re-mount when plan changes so checked state resets
+                key={displayPlan}
                 className="accent-blue-700"
               />
               <span className="capitalize text-sm text-slate-700">{plan}</span>
@@ -124,10 +137,10 @@ export function SetPlanForm({
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={isPending}
         className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
       >
-        {pending ? 'Saving…' : 'Set plan'}
+        {isPending ? 'Saving…' : 'Set plan'}
       </button>
 
       {state.message ? (
@@ -198,4 +211,3 @@ export function ResendRepAuthButton({ email }: { email: string }) {
     </div>
   )
 }
-

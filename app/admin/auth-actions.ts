@@ -51,22 +51,7 @@ export async function resendAuthEmailAction(
     const redirectTo = `${siteUrl}/auth/callback`
     const admin = createAdminClient()
 
-    // Generate a link using admin privileges so we can return the direct link
-    // and also dispatch the confirmation email
-    const linkResult = await admin.auth.admin.generateLink({
-      type: 'signup',
-      email: trimmed,
-      options: {
-        redirectTo,
-      },
-    })
-
-    let actionLink: string | undefined
-    if (!linkResult.error && linkResult.data?.properties?.action_link) {
-      actionLink = linkResult.data.properties.action_link
-    }
-
-    // Also trigger standard resend to dispatch the email via configured SMTP
+    // Resend confirmation email via Supabase Auth
     const resendResult = await admin.auth.resend({
       type: 'signup',
       email: trimmed,
@@ -75,12 +60,28 @@ export async function resendAuthEmailAction(
       },
     })
 
-    if (linkResult.error && resendResult.error) {
+    // Also attempt to generate a direct magic link in case email delivery fails or is delayed
+    let actionLink: string | undefined
+    try {
+      const linkResult = await admin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: trimmed,
+        options: {
+          redirectTo,
+        },
+      })
+      if (!linkResult.error && linkResult.data?.properties?.action_link) {
+        actionLink = linkResult.data.properties.action_link
+      }
+    } catch {
+      // ignore magiclink generation error if resend succeeded
+    }
+
+    if (resendResult.error && !actionLink) {
       return {
         ok: false,
         message:
-          resendResult.error?.message ||
-          linkResult.error?.message ||
+          resendResult.error.message ||
           'Failed to resend auth email. User may not exist in Auth records.',
       }
     }
