@@ -7,6 +7,7 @@ import { AdminResendAuthCard } from './_components/admin-resend-auth-card'
 import { SourceHealthRow } from './_components/source-health-row'
 import { StatTile } from './_components/stat-tile'
 import { SvgSparkline } from './_components/svg-sparkline'
+import AdminEmailActionsCard from './_components/email-actions-card'
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard | Quick Tenders',
@@ -257,6 +258,9 @@ export default async function AdminDashboardPage() {
 
       {/* Auth recovery */}
       <AdminResendAuthCard />
+
+      {/* Email actions */}
+      <AdminEmailActionsCard />
 
       {/* Trend charts */}
       <section aria-labelledby="trends-heading" className="space-y-4">

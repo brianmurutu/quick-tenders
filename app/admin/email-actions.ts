@@ -1,9 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 import { createClient } from '@/lib/supabase/server'
-import { sendAdminEmail, type AdminEmailInput } from '@/lib/email/admin-custom'
+import { sendAdminEmail } from '@/lib/email/admin-custom'
 
 // ---------------------------------------------------------------------------
 // Guard helper
