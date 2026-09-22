@@ -42,7 +42,7 @@ export default function CareersPage() {
           not needed.
         </p>
         <div className="max-w-sm">
-          <ContactBlock label="Applications" email="careers@quicktenders.ke">
+          <ContactBlock label="Applications" email="careers@quicktenders.co.ke">
             Include a link to something you have made, if there is one to share.
           </ContactBlock>
         </div>

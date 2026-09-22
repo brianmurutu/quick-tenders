@@ -96,10 +96,10 @@ export default function SecurityPage() {
         <p>
           Send reports to{' '}
           <a
-            href="mailto:security@quicktenders.ke"
+            href="mailto:security@quicktenders.co.ke"
             className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
           >
-            security@quicktenders.ke
+            security@quicktenders.co.ke
           </a>{' '}
           with enough detail to reproduce the issue. We aim to acknowledge within
           three working days.

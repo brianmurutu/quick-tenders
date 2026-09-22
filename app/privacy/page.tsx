@@ -155,10 +155,10 @@ export default function PrivacyPage() {
         <p>
           Privacy questions and data requests go to{' '}
           <a
-            href="mailto:privacy@quicktenders.ke"
+            href="mailto:privacy@quicktenders.co.ke"
             className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
           >
-            privacy@quicktenders.ke
+            privacy@quicktenders.co.ke
           </a>
           . Other routes are on the{' '}
           <Link

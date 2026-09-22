@@ -32,20 +32,20 @@ export default function ContactPage() {
 
       <Section heading="Reach our team">
         <div className="grid gap-4 sm:grid-cols-2">
-          <ContactBlock label="Support & Helpdesk" email="support@quicktenders.ke">
+          <ContactBlock label="Support & Helpdesk" email="support@quicktenders.co.ke">
             Questions about PPIP matches, Word proposal drafts, or your trial. Include your company
             domain so the account can be found.
           </ContactBlock>
 
-          <ContactBlock label="Sales & Enterprise" email="sales@quicktenders.ke">
+          <ContactBlock label="Sales & Enterprise" email="sales@quicktenders.co.ke">
             Custom plans, enterprise invoicing, M-Pesa billing, and high-volume tender pipelines across multiple sectors.
           </ContactBlock>
 
-          <ContactBlock label="Security & Compliance" email="security@quicktenders.ke">
+          <ContactBlock label="Security & Compliance" email="security@quicktenders.co.ke">
             Vulnerability reports, data protection inquiries, and procurement security questionnaires.
           </ContactBlock>
 
-          <ContactBlock label="Careers & Partnerships" email="careers@quicktenders.ke">
+          <ContactBlock label="Careers & Partnerships" email="careers@quicktenders.co.ke">
             Partnership inquiries, contractor networks, and speculative career applications.
           </ContactBlock>
         </div>
@@ -73,10 +73,10 @@ export default function ContactPage() {
           If you have found something that affects the safety of customer data,
           send it to{' '}
           <a
-            href="mailto:security@quicktenders.ke"
+            href="mailto:security@quicktenders.co.ke"
             className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
           >
-            security@quicktenders.ke
+            security@quicktenders.co.ke
           </a>{' '}
           rather than raising it in public. The{' '}
           <Link

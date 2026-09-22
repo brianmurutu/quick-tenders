@@ -153,10 +153,10 @@ export default function TermsPage() {
         <p>
           Questions about these terms go to{' '}
           <a
-            href="mailto:legal@quicktenders.ke"
+            href="mailto:legal@quicktenders.co.ke"
             className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
           >
-            legal@quicktenders.ke
+            legal@quicktenders.co.ke
           </a>
           .
         </p>
