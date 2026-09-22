@@ -2,40 +2,31 @@
 
 import { useState } from 'react'
 
-import { sendCustomEmailAction, sendUpdateAction } from '@/app/admin/email-actions'
+import {
+  sendCustomEmailAction,
+  sendUpdateAction,
+  type SendCustomEmailState,
+  type SendUpdateState,
+} from '@/app/admin/email-actions'
 
 export default function AdminEmailActionsCard() {
-  const [customEmailState, setCustomEmailState] = useState<{
-    ok?: boolean
-    message?: string
-    sentCount?: number
-  }>()
-  const [updateState, setUpdateState] = useState<{
-    ok?: boolean
-    message?: string
-    sentCount?: number
-  }>()
+  const [customEmailState, setCustomEmailState] = useState<SendCustomEmailState | undefined>(undefined)
+  const [updateState, setUpdateState] = useState<SendUpdateState | undefined>(undefined)
   const [customEmailLoading, setCustomEmailLoading] = useState(false)
   const [updateLoading, setUpdateLoading] = useState(false)
   const [customEmailRecipientType, setCustomEmailRecipientType] = useState<'all' | 'company' | 'selected'>('all')
   const [updateRecipientType, setUpdateRecipientType] = useState<'all' | 'company' | 'selected'>('all')
 
-  async function handleCustomEmail(
-    prevState: { ok?: boolean; message?: string; sentCount?: number } | undefined,
-    formData: FormData
-  ) {
+  async function handleCustomEmail(formData: FormData) {
     setCustomEmailLoading(true)
-    const result = await sendCustomEmailAction(prevState, formData)
+    const result = await sendCustomEmailAction(customEmailState, formData)
     setCustomEmailState(result)
     setCustomEmailLoading(false)
   }
 
-  async function handleUpdate(
-    prevState: { ok?: boolean; message?: string; sentCount?: number } | undefined,
-    formData: FormData
-  ) {
+  async function handleUpdate(formData: FormData) {
     setUpdateLoading(true)
-    const result = await sendUpdateAction(prevState, formData)
+    const result = await sendUpdateAction(updateState, formData)
     setUpdateState(result)
     setUpdateLoading(false)
   }

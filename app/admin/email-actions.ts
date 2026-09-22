@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { sendAdminEmail } from '@/lib/email/admin-custom'
+import { sendAdminEmail, buildAdminAnnouncementEmail } from '@/lib/email/admin-custom'
 
 // ---------------------------------------------------------------------------
 // Guard helper
@@ -57,7 +57,7 @@ export type SendCustomEmailState = {
  * - representativeIds: when recipientType is 'selected' (comma-separated string)
  */
 export async function sendCustomEmailAction(
-  _prevState: SendCustomEmailState,
+  _prevState: SendCustomEmailState | undefined,
   formData: FormData,
 ): Promise<SendCustomEmailState> {
   const subject = String(formData.get('subject') ?? '').trim()
@@ -181,7 +181,7 @@ export type SendUpdateState = {
  * - isImportant: whether to mark as important (optional)
  */
 export async function sendUpdateAction(
-  _prevState: SendUpdateState,
+  _prevState: SendUpdateState | undefined,
   formData: FormData,
 ): Promise<SendUpdateState> {
   const title = String(formData.get('title') ?? '').trim()

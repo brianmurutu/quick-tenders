@@ -11,7 +11,6 @@ export type AdminEmailInput = {
   subject: string
   html: string
   text?: string
-  from?: string
 }
 
 export type AdminEmailResult =
@@ -41,8 +40,7 @@ export async function sendAdminEmail(input: AdminEmailInput): Promise<AdminEmail
       to: validRecipients,
       subject: input.subject,
       html: input.html,
-      text: input.text,
-      from: input.from,
+      text: input.text ?? '',
     })
 
     if (result.ok) {
