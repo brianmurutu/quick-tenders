@@ -60,11 +60,6 @@ export default function AdminEmailActionsCard() {
           action={handleCustomEmail}
           className="space-y-4"
           data-state={customEmailState?.ok ? 'success' : customEmailState?.ok === false ? 'error' : 'idle'}
-          onChange={(e) => {
-            if (e.target.name === 'recipientType') {
-              setCustomEmailRecipientType(e.target.value as any)
-            }
-          }}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -88,6 +83,7 @@ export default function AdminEmailActionsCard() {
                 name="recipientType"
                 required
                 value={customEmailRecipientType}
+                onChange={(e) => setCustomEmailRecipientType(e.target.value as 'all' | 'company' | 'selected')}
                 className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
               >
                 <option value="all">All Representatives</option>
@@ -143,7 +139,7 @@ export default function AdminEmailActionsCard() {
             <button
               type="submit"
               disabled={customEmailLoading}
-              className={`w-flex items-center justify-center gap-2 rounded-md border border-transparent bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 ${
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 ${
                 customEmailLoading ? 'bg-slate-400' : ''
               }`}
             >
@@ -171,11 +167,6 @@ export default function AdminEmailActionsCard() {
           action={handleUpdate}
           className="space-y-4"
           data-state={updateState?.ok ? 'success' : updateState?.ok === false ? 'error' : 'idle'}
-          onChange={(e) => {
-            if (e.target.name === 'recipientType') {
-              setUpdateRecipientType(e.target.value as any)
-            }
-          }}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -199,6 +190,7 @@ export default function AdminEmailActionsCard() {
                 name="recipientType"
                 required
                 value={updateRecipientType}
+                onChange={(e) => setUpdateRecipientType(e.target.value as 'all' | 'company' | 'selected')}
                 className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
               >
                 <option value="all">All Representatives</option>
@@ -273,7 +265,7 @@ export default function AdminEmailActionsCard() {
             <button
               type="submit"
               disabled={updateLoading}
-              className={`w-flex items-center justify-center gap-2 rounded-md border border-transparent bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 ${
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 ${
                 updateLoading ? 'bg-slate-400' : ''
               }`}
             >
