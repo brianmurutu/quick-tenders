@@ -66,14 +66,27 @@ function collapseWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
+const MONTH_MAP: Record<string, string> = {
+  jan: '01', january: '01',
+  feb: '02', february: '02',
+  mar: '03', march: '03',
+  apr: '04', april: '04',
+  may: '05',
+  jun: '06', june: '06',
+  jul: '07', july: '07',
+  aug: '08', august: '08',
+  sep: '09', september: '09',
+  oct: '10', october: '10',
+  nov: '11', november: '11',
+  dec: '12', december: '12',
+}
+
 /**
  * Turns a date as a source wrote it into an ISO calendar date.
  *
  * Handles the formats actually seen on Kenyan procurement pages: ISO,
- * ISO timestamps, and day-first slash or dot separated dates. Day-first is
- * assumed for ambiguous slash dates, because that is the local convention.
- * Anything else returns null rather than a guess, since a wrong deadline is
- * worse than a missing one.
+ * ISO timestamps, day-first slash or dot separated dates, and dates with
+ * named English months (e.g. '05-Oct-2026', 'October 6, 2026', '28 Sep 2026').
  */
 export function parseDeadline(value: string | null | undefined): string | null {
   if (!value) return null
@@ -95,6 +108,26 @@ export function parseDeadline(value: string | null | undefined): string | null {
     return isValidYmd(dayFirst[3], month, day)
       ? `${dayFirst[3]}-${month}-${day}`
       : null
+  }
+
+  // 05-Oct-2026, 28 Sep 2026, or 7th October, 2026
+  const dayMonthYear = raw.match(/^(\d{1,2})(?:st|nd|rd|th)?[-/ ]+([a-z]+)[-,/ ]+(\d{4})$/i)
+  if (dayMonthYear) {
+    const month = MONTH_MAP[dayMonthYear[2].toLowerCase()]
+    const day = dayMonthYear[1].padStart(2, '0')
+    if (month && isValidYmd(dayMonthYear[3], month, day)) {
+      return `${dayMonthYear[3]}-${month}-${day}`
+    }
+  }
+
+  // October 6, 2026 or Oct 06 2026
+  const monthDayYear = raw.match(/^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i)
+  if (monthDayYear) {
+    const month = MONTH_MAP[monthDayYear[1].toLowerCase()]
+    const day = monthDayYear[2].padStart(2, '0')
+    if (month && isValidYmd(monthDayYear[3], month, day)) {
+      return `${monthDayYear[3]}-${month}-${day}`
+    }
   }
 
   return null

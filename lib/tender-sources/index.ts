@@ -6,8 +6,14 @@
  */
 
 import { countySources } from './county'
+import { gaaSource } from './gaa'
+import { kenyaTendersSource } from './kenyatenders'
 import { mockSource } from './mock'
 import { ppipSource } from './ppip'
+import { tendersKenyaSource } from './tenders-kenya'
+import { tendersInfoSource } from './tendersinfo'
+import { tendersokoSource } from './tendersoko'
+import { tendersOnTimeSource } from './tendersontime'
 import {
   normaliseSourceUrl,
   normaliseTenders,
@@ -19,6 +25,12 @@ import {
 export * from './types'
 export { ppipSource } from './ppip'
 export { mockSource } from './mock'
+export { gaaSource } from './gaa'
+export { tendersKenyaSource } from './tenders-kenya'
+export { tendersInfoSource } from './tendersinfo'
+export { tendersOnTimeSource } from './tendersontime'
+export { tendersokoSource } from './tendersoko'
+export { kenyaTendersSource } from './kenyatenders'
 export {
   countySources,
   makeWordPressCountySource,
@@ -27,7 +39,17 @@ export {
   nakuruCountySource,
 } from './county'
 
-export const ALL_SOURCES: TenderSource[] = [ppipSource, ...countySources, mockSource]
+export const ALL_SOURCES: TenderSource[] = [
+  ppipSource,
+  tendersKenyaSource,
+  tendersInfoSource,
+  tendersOnTimeSource,
+  gaaSource,
+  kenyaTendersSource,
+  tendersokoSource,
+  ...countySources,
+  mockSource,
+]
 
 /**
  * Which sources this deployment runs, from TENDER_SOURCES as a comma separated
