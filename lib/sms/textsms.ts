@@ -7,7 +7,7 @@
  * API docs: https://www.textsms.co.ke/api-documentation
  */
 
-const TEXTSMS_ENDPOINT = 'https://api.textsms.co.ke/api/services/sendsms/'
+const TEXTSMS_ENDPOINT = 'https://sms.textsms.co.ke/api/services/sendsms/'
 const TIMEOUT_MS = 15_000
 
 export type SendSmsInput = {

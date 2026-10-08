@@ -46,7 +46,7 @@ const PROVIDERS: readonly ProviderSpec[] = [
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     keyEnv: 'GROQ_API_KEY',
     modelEnv: 'GROQ_MODEL',
-    defaultModel: 'llama-3.3-70b-versatile',
+    defaultModel: 'openai/gpt-oss-120b',
     maxTokensField: 'max_completion_tokens',
     consoleUrl: 'https://console.groq.com/keys',
   },
@@ -186,42 +186,57 @@ export function createAiClient(): AiClient {
       { role: 'user', content: prompt },
     ]
 
-    const response = await fetch(spec.endpoint, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        [spec.maxTokensField]: maxTokens,
-        response_format: { type: 'json_object' },
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
+    let lastError: Error | null = null
+    const maxAttempts = 3
 
-    const payload = (await response
-      .json()
-      .catch(() => null)) as CompletionResponse | null
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const response = await fetch(spec.endpoint, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          [spec.maxTokensField]: maxTokens,
+          response_format: { type: 'json_object' },
+        }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      })
 
-    if (!response.ok) {
-      // Naming the provider matters: "403" from an unspecified service is the
-      // kind of log line that costs an hour to diagnose.
-      throw new Error(
-        `${spec.label} (${model}) rejected the request: ${errorMessage(payload, response.status)}`,
-      )
+      const payload = (await response
+        .json()
+        .catch(() => null)) as CompletionResponse | null
+
+      if (!response.ok) {
+        if (response.status === 429 && attempt < maxAttempts) {
+          const retryHeader = response.headers.get('retry-after')
+          const waitMs = retryHeader ? Math.max(1000, Number(retryHeader) * 1000) : 5000
+          console.warn(
+            `[ai] ${spec.label} 429 rate limit hit, waiting ${waitMs}ms before retry ${attempt}/${maxAttempts}...`,
+          )
+          await new Promise((resolve) => setTimeout(resolve, waitMs))
+          continue
+        }
+
+        throw new Error(
+          `${spec.label} (${model}) rejected the request: ${errorMessage(payload, response.status)}`,
+        )
+      }
+
+      const content = payload?.choices?.[0]?.message?.content
+
+      if (!content) throw new Error(`${spec.label} returned no completion content`)
+
+      try {
+        return JSON.parse(content)
+      } catch {
+        throw new Error(`${spec.label} returned invalid JSON`)
+      }
     }
 
-    const content = payload?.choices?.[0]?.message?.content
-
-    if (!content) throw new Error(`${spec.label} returned no completion content`)
-
-    try {
-      return JSON.parse(content)
-    } catch {
-      throw new Error(`${spec.label} returned invalid JSON`)
-    }
+    throw lastError ?? new Error(`${spec.label} failed after ${maxAttempts} attempts`)
   }
 
   return { provider: spec.id, model, completeJson }

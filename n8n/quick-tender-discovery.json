@@ -2,6 +2,14 @@
   "name": "Quick Tender - Automated Discovery & Matching",
   "nodes": [
     {
+      "id": "schedule-trigger",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -11,23 +19,26 @@
             }
           ]
         }
-      },
-      "id": "schedule-trigger",
-      "name": "Every 6 Hours",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [100, 300]
+      }
     },
     {
+      "id": "trigger-discovery",
+      "name": "Run Discovery Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        300
+      ],
       "parameters": {
-        "url": "={{ $env.QUICK_TENDER_API_URL || 'https://quicktender.co.ke' }}/api/discover-tenders",
+        "url": "https://quicktenders.co.ke/api/cron/discover-tenders?sources=tenders-kenya,tendersinfo,tendersontime,gaa",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer {{ $env.CRON_SECRET }}"
+              "value": "Bearer 3b35f05c0c4df5e634732c35159fc5c9cdde6907b6bb64974198ae1250b1697f"
             },
             {
               "name": "Content-Type",
@@ -35,26 +46,20 @@
             }
           ]
         },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "sourceIds",
-              "value": "tenders-kenya,tendersinfo,tendersontime,gaa"
-            }
-          ]
-        },
         "options": {
-          "timeout": 60000
+          "timeout": 300000
         }
-      },
-      "id": "trigger-discovery",
-      "name": "Run Discovery Pipeline",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [360, 300]
+      }
     },
     {
+      "id": "check-new-matches",
+      "name": "New Tenders Inserted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        620,
+        300
+      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -75,27 +80,56 @@
           ],
           "combinator": "and"
         }
-      },
-      "id": "check-new-matches",
-      "name": "New Tenders Inserted?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [620, 300]
+      }
     },
     {
+      "id": "trigger-drafting",
+      "name": "Auto-Draft Bid Documents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ],
       "parameters": {
+        "url": "https://quicktenders.co.ke/api/cron/draft-documents",
         "method": "POST",
-        "url": "https://api.africastalking.com/version1/messaging",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "apiKey",
-              "value": "={{ $env.AFRICASTALKING_API_KEY }}"
+              "name": "Authorization",
+              "value": "Bearer 3b35f05c0c4df5e634732c35159fc5c9cdde6907b6bb64974198ae1250b1697f"
             },
             {
               "name": "Content-Type",
-              "value": "application/x-www-form-urlencoded"
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      }
+    },
+    {
+      "id": "send-sms-alert",
+      "name": "Send SMS / WhatsApp Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sms.textsms.co.ke/api/services/sendsms/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
             },
             {
               "name": "Accept",
@@ -104,39 +138,39 @@
           ]
         },
         "sendBody": true,
-        "contentType": "form-urlencoded",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "username",
-              "value": "={{ $env.AFRICASTALKING_USERNAME || 'sandbox' }}"
-            },
-            {
-              "name": "to",
-              "value": "={{ $env.ADMIN_PHONE_NUMBER }}"
-            },
-            {
-              "name": "message",
-              "value": "=Quick Tender Alert: {{ $json.totals.inserted }} new high-match tenders discovered across {{ $json.sources.length }} sources. Log in to your dashboard to review bids."
-            }
-          ]
-        }
-      },
-      "id": "send-sms-alert",
-      "name": "Send SMS / WhatsApp Alert",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [880, 200]
+        "specifyBody": "json",
+        "jsonBody": "{\"apikey\":\"746ae40c04a727bf224b33e1e3b3e0d4\",\"partnerID\":\"15007\",\"message\":\"Quick Tender Alert: New tenders matched and proposals drafted. Log into dashboard: https://quicktenders.co.ke/dashboard\",\"shortcode\":\"TextSMS\",\"mobile\":\"254712623941\"}"
+      }
     },
     {
-      "parameters": {
-        "options": {}
-      },
       "id": "log-no-new",
       "name": "Log (No New Matches)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [880, 420]
+      "position": [
+        880,
+        420
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "webhook-trigger",
+      "name": "Dashboard Webhook Trigger",
+      "webhookId": "quicktender-discovery-hook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        480
+      ],
+      "parameters": {
+        "path": "quicktender-discovery",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      }
     }
   ],
   "connections": {
@@ -166,7 +200,7 @@
       "main": [
         [
           {
-            "node": "Send SMS / WhatsApp Alert",
+            "node": "Auto-Draft Bid Documents",
             "type": "main",
             "index": 0
           }
@@ -179,9 +213,32 @@
           }
         ]
       ]
+    },
+    "Auto-Draft Bid Documents": {
+      "main": [
+        [
+          {
+            "node": "Send SMS / WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run Discovery Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "availableInMCP": true
   }
 }

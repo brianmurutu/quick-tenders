@@ -61,10 +61,18 @@ export default async function DashboardPage({
   const tab = parseTab(searchParams.status)
   const today = isoToday()
 
-  // Both queries are scoped by RLS to the caller company, so neither needs a
-  // company filter of its own.
-  const [companyResult, tendersResult] = await Promise.all([
-    supabase.from('companies').select('name, plan, trial_ends_at').limit(1).maybeSingle(),
+  // Queries scoped by RLS to the caller company.
+  const [companyResult, repResult, tendersResult] = await Promise.all([
+    supabase
+      .from('companies')
+      .select('id, name, plan, trial_ends_at, sectors_of_interest, industry')
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('representatives')
+      .select('id, full_name, email, phone_number')
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from('tenders_matched')
       .select('id, title, procuring_entity, deadline, match_score, status')
@@ -76,6 +84,7 @@ export default async function DashboardPage({
   ])
 
   const company = companyResult.data
+  const rep = repResult.data
   const tenders = tendersResult.data ?? []
   const counts = countByBucket(tenders, today)
   const visible = filterByTab(tenders, tab, today)
@@ -114,8 +123,13 @@ export default async function DashboardPage({
           ) : null}
         </div>
 
-        {/* On-Demand Presentation Automation Controls */}
-        <AutomationTrigger initialMatchedCount={counts.all} />
+        {/* On-Demand Interactive Custom Sector & Automation Controls */}
+        <AutomationTrigger
+          initialMatchedCount={counts.all}
+          companyProfileSectors={company?.sectors_of_interest ?? []}
+          representativePhone={rep?.phone_number}
+          representativeEmail={rep?.email}
+        />
 
         {/* Automated Background AI Schedule (Cron) Settings */}
         <CronScheduleCard />

@@ -3,41 +3,126 @@
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
+import { SECTORS } from '@/lib/company-profile'
 import {
   triggerDiscoveryAction,
   triggerDraftingAction,
   triggerFullPipelineAction,
   triggerResetMatchesAction,
+  updateRepresentativePhoneAction,
 } from './automation-actions'
 
 type TriggerMode = 'idle' | 'discovery' | 'drafting' | 'full' | 'resetting'
 
-export function AutomationTrigger({ initialMatchedCount }: { initialMatchedCount: number }) {
+export function AutomationTrigger({
+  initialMatchedCount,
+  companyProfileSectors = [],
+  representativePhone,
+  representativeEmail,
+}: {
+  initialMatchedCount: number
+  companyProfileSectors?: string[]
+  representativePhone?: string | null
+  representativeEmail?: string | null
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [activeAction, setActiveAction] = useState<TriggerMode>('idle')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [activeStep, setActiveStep] = useState<number>(0)
+
+  // Sector selection state
+  const [showSectorPicker, setShowSectorPicker] = useState(false)
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(
+    companyProfileSectors.length > 0
+      ? companyProfileSectors
+      : ['ICT and software', 'Building and construction', 'Telecommunications'],
+  )
+  const [forceRescore, setForceRescore] = useState(false)
+
+  // Phone editing state
+  const [phone, setPhone] = useState(representativePhone ?? '')
+  const [isEditingPhone, setIsEditingPhone] = useState(false)
+  const [phoneSaving, setPhoneSaving] = useState(false)
+  const [phoneFeedback, setPhoneFeedback] = useState<string | null>(null)
+
   const [lastSummary, setLastSummary] = useState<{
     type: 'success' | 'error' | 'info'
     title: string
     details: string
+    matchedCount?: number
+    topScore?: number | null
   } | null>(null)
 
   const busy = isPending || activeAction !== 'idle'
 
+  function toggleSector(sector: string) {
+    setSelectedSectors((prev) =>
+      prev.includes(sector) ? prev.filter((s) => s !== sector) : [...prev, sector],
+    )
+  }
+
+  function handleSelectAll() {
+    setSelectedSectors([...SECTORS])
+  }
+
+  function handleClearAll() {
+    setSelectedSectors([])
+  }
+
+  function handleResetProfile() {
+    setSelectedSectors(companyProfileSectors.length > 0 ? companyProfileSectors : ['ICT and software'])
+  }
+
+  async function handleSavePhone(e: React.FormEvent) {
+    e.preventDefault()
+    setPhoneSaving(true)
+    setPhoneFeedback(null)
+    try {
+      const res = await updateRepresentativePhoneAction(phone)
+      if (res.ok) {
+        setPhoneFeedback('✓ Phone saved for SMS alerts')
+        setIsEditingPhone(false)
+        router.refresh()
+      } else {
+        setPhoneFeedback(`Error: ${res.message}`)
+      }
+    } catch (err) {
+      setPhoneFeedback('Failed to update phone.')
+    } finally {
+      setPhoneSaving(false)
+      setTimeout(() => setPhoneFeedback(null), 4000)
+    }
+  }
+
   function handleRunDiscovery() {
     setActiveAction('discovery')
-    setStatusMessage('Connecting to procurement sources and scoring with AI...')
+    setActiveStep(1)
+    setStatusMessage('1/3 Connecting to procurement portals (GAA, TendersInfo, Tenders Kenya)...')
     setLastSummary(null)
 
     startTransition(async () => {
       try {
-        const res = await triggerDiscoveryAction()
+        setTimeout(() => {
+          setActiveStep(2)
+          setStatusMessage('2/3 Scoring tender relevance with AI across selected sectors...')
+        }, 1200)
+
+        const res = await triggerDiscoveryAction({
+          customSectors: selectedSectors,
+          forceRescore,
+        })
+
+        setActiveStep(3)
+        setStatusMessage('3/3 Dispatched notifications via Email & SMS...')
+
         if (res.ok) {
           setLastSummary({
             type: 'success',
             title: 'Discovery & Matching Completed',
             details: res.message,
+            matchedCount: res.matchedCount,
+            topScore: res.topScore,
           })
           setStatusMessage(null)
           router.refresh()
@@ -58,6 +143,7 @@ export function AutomationTrigger({ initialMatchedCount }: { initialMatchedCount
         setStatusMessage(null)
       } finally {
         setActiveAction('idle')
+        setActiveStep(0)
       }
     })
   }
@@ -101,17 +187,31 @@ export function AutomationTrigger({ initialMatchedCount }: { initialMatchedCount
 
   function handleRunFullPipeline() {
     setActiveAction('full')
-    setStatusMessage('Running end-to-end automation: Discovery ➔ Scoring ➔ Proposal Drafting...')
+    setActiveStep(1)
+    setStatusMessage('1/3 Scraping portals & scoring tenders for selected sectors...')
     setLastSummary(null)
 
     startTransition(async () => {
       try {
-        const res = await triggerFullPipelineAction()
+        setTimeout(() => {
+          setActiveStep(2)
+          setStatusMessage('2/3 Drafting compliant proposals and bid documents with AI...')
+        }, 2000)
+
+        const res = await triggerFullPipelineAction({
+          customSectors: selectedSectors,
+          forceRescore,
+        })
+
+        setActiveStep(3)
+        setStatusMessage('3/3 Dispatched tender documents and alerts via Email & SMS...')
+
         if (res.ok) {
           setLastSummary({
             type: 'success',
             title: 'Full Pipeline Run Successful',
             details: res.message,
+            matchedCount: res.matchedCount,
           })
           setStatusMessage(null)
           router.refresh()
@@ -132,6 +232,7 @@ export function AutomationTrigger({ initialMatchedCount }: { initialMatchedCount
         setStatusMessage(null)
       } finally {
         setActiveAction('idle')
+        setActiveStep(0)
       }
     })
   }
@@ -169,134 +270,318 @@ export function AutomationTrigger({ initialMatchedCount }: { initialMatchedCount
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white p-5 shadow-xs transition-all">
+    <div className="mt-6 rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-6 shadow-sm transition-all">
+      {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-700 text-white shadow-xs">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-700 text-white shadow-sm ring-4 ring-blue-100">
             <SparklesIcon />
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold tracking-tight text-slate-900">
-                Agent Automation Triggers
+              <h2 className="text-base font-bold tracking-tight text-slate-900">
+                Interactive AI Discovery & Matching
               </h2>
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase text-blue-800">
-                Live Controls
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase text-emerald-800">
+                Live Engine
               </span>
             </div>
             <p className="mt-0.5 text-xs text-slate-600">
-              Run tender discovery, AI matching, and proposal drafting on-demand without waiting for
-              cron schedules.
+              Trigger on-demand runs with custom sectors, automated AI scoring, proposal drafting, and immediate Email & SMS notifications.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Main On-Demand Triggers */}
+        {/* Sector Picker Toggle Button */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleRunFullPipeline}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            onClick={() => setShowSectorPicker(!showSectorPicker)}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
           >
-            {activeAction === 'full' ? (
-              <>
-                <SpinnerIcon />
-                <span>Running Full Pipeline…</span>
-              </>
+            <span>🎯 Custom Sectors ({selectedSectors.length} active)</span>
+            <span className="text-slate-400 text-[10px]">{showSectorPicker ? '▲' : '▼'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Interactive Sector Selection Panel */}
+      {showSectorPicker && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs transition-all">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-xs font-bold text-slate-900">
+                Select Sectors for Next Run
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Choose the exact procurement categories you want the AI agent to prioritize.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="text-[11px] font-semibold text-blue-700 hover:underline"
+              >
+                Select All
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="text-[11px] font-semibold text-slate-600 hover:underline"
+              >
+                Clear All
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={handleResetProfile}
+                className="text-[11px] font-semibold text-slate-600 hover:underline"
+              >
+                Reset to Profile
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1">
+            {SECTORS.map((sector) => {
+              const selected = selectedSectors.includes(sector)
+              return (
+                <button
+                  key={sector}
+                  type="button"
+                  onClick={() => toggleSector(sector)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                    selected
+                      ? 'bg-blue-700 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span>{selected ? '✓' : '+'}</span>
+                  <span>{sector}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700">
+              <input
+                type="checkbox"
+                checked={forceRescore}
+                onChange={(e) => setForceRescore(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-[11px]">Force rescore all open tenders (including previously viewed)</span>
+            </label>
+            <span className="text-[11px] text-slate-500">
+              {selectedSectors.length} of {SECTORS.length} sectors active
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Channel Bar */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white/70 px-4 py-2.5 text-xs text-slate-600">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-emerald-600">✉️</span>
+            <span>Email alerts:</span>
+            <strong className="text-slate-800">{representativeEmail || 'Configured'}</strong>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-blue-600">📱</span>
+            <span>SMS alerts:</span>
+            {isEditingPhone ? (
+              <form onSubmit={handleSavePhone} className="inline-flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. 0712623941"
+                  className="w-32 rounded border border-slate-300 px-2 py-0.5 text-xs focus:border-blue-500 focus:outline-hidden"
+                />
+                <button
+                  type="submit"
+                  disabled={phoneSaving}
+                  className="rounded bg-blue-700 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-blue-800"
+                >
+                  {phoneSaving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPhone(false)}
+                  className="text-[11px] text-slate-400 hover:text-slate-600"
+                >
+                  Cancel
+                </button>
+              </form>
             ) : (
               <>
-                <RocketIcon />
-                <span>Run Full Automation</span>
+                <strong className="text-slate-800">{phone || 'Not set'}</strong>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPhone(true)}
+                  className="text-[11px] font-medium text-blue-700 hover:underline"
+                >
+                  Edit
+                </button>
               </>
             )}
-          </button>
+            {phoneFeedback && (
+              <span className="ml-1 text-[11px] font-semibold text-emerald-700">
+                {phoneFeedback}
+              </span>
+            )}
+          </div>
+        </div>
 
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+          <span>Notifications on match & no-match active</span>
+        </div>
+      </div>
+
+      {/* Actions Toolbar */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Custom Discovery Button */}
           <button
             type="button"
             onClick={handleRunDiscovery}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={busy || selectedSectors.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {activeAction === 'discovery' ? (
               <>
                 <SpinnerIcon />
-                <span>Discovering…</span>
+                <span>Running Discovery…</span>
               </>
             ) : (
               <>
                 <SearchIcon />
-                <span>Find & Match Tenders</span>
+                <span>Find & Match Tenders ({selectedSectors.length} Sectors)</span>
               </>
             )}
           </button>
 
+          {/* Full Pipeline Button */}
+          <button
+            type="button"
+            onClick={handleRunFullPipeline}
+            disabled={busy || selectedSectors.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-3.5 py-2 text-xs font-semibold text-blue-800 shadow-2xs hover:bg-blue-50 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {activeAction === 'full' ? (
+              <>
+                <SpinnerIcon />
+                <span>Executing Pipeline…</span>
+              </>
+            ) : (
+              <>
+                <RocketIcon />
+                <span>Full Pipeline (Discovery + Proposal Drafts)</span>
+              </>
+            )}
+          </button>
+
+          {/* Auto-Draft Proposals */}
           <button
             type="button"
             onClick={handleRunDrafting}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-all disabled:cursor-not-allowed disabled:opacity-60"
           >
             {activeAction === 'drafting' ? (
               <>
                 <SpinnerIcon />
-                <span>Drafting Documents…</span>
+                <span>Drafting Proposals…</span>
               </>
             ) : (
               <>
                 <DocumentTextIcon />
-                <span>Auto-Draft Proposals</span>
+                <span>Auto-Draft Proposals (.docx)</span>
               </>
             )}
           </button>
-
-          {/* Reset Demo Button */}
-          {initialMatchedCount > 0 && (
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={busy}
-              title="Clear matches to demonstrate matching from empty state"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
-            >
-              <RefreshIcon />
-              <span>Reset</span>
-            </button>
-          )}
         </div>
+
+        {/* Reset Demo Button */}
+        {initialMatchedCount > 0 && (
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={busy}
+            title="Clear matches to test discovery from an empty state"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+          >
+            <RefreshIcon />
+            <span>Reset Demo</span>
+          </button>
+        )}
       </div>
 
-      {/* Real-time Progress Bar / Status */}
+      {/* Progress / Step Visualizer */}
       {statusMessage && (
-        <div className="mt-3.5 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-100/60 px-4 py-2.5 text-xs font-medium text-blue-900 animate-pulse">
-          <SpinnerIcon />
-          <span>{statusMessage}</span>
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/90 p-3.5 text-xs text-blue-950">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 font-medium">
+              <SpinnerIcon />
+              <span>{statusMessage}</span>
+            </div>
+            <span className="text-[11px] font-bold text-blue-700">In Progress</span>
+          </div>
+          <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div
+              className={`h-1.5 rounded-full transition-all ${
+                activeStep >= 1 ? 'bg-blue-600' : 'bg-blue-200'
+              }`}
+            />
+            <div
+              className={`h-1.5 rounded-full transition-all ${
+                activeStep >= 2 ? 'bg-blue-600' : 'bg-blue-200'
+              }`}
+            />
+            <div
+              className={`h-1.5 rounded-full transition-all ${
+                activeStep >= 3 ? 'bg-blue-600' : 'bg-blue-200'
+              }`}
+            />
+          </div>
         </div>
       )}
 
-      {/* Output / Summary Box */}
+      {/* Summary Output Box */}
       {lastSummary && (
         <div
-          className={`mt-3.5 rounded-lg border px-4 py-3 text-xs leading-relaxed transition-all ${
+          className={`mt-4 rounded-xl border p-4 text-xs leading-relaxed transition-all shadow-2xs ${
             lastSummary.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              ? 'border-emerald-300 bg-emerald-50/90 text-emerald-950'
               : lastSummary.type === 'error'
-                ? 'border-rose-200 bg-rose-50 text-rose-900'
-                : 'border-slate-200 bg-slate-50 text-slate-800'
+                ? 'border-rose-300 bg-rose-50/90 text-rose-950'
+                : 'border-slate-300 bg-slate-50 text-slate-900'
           }`}
         >
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-bold flex items-center gap-1.5">
+              <p className="font-bold flex items-center gap-1.5 text-sm">
                 <span>{lastSummary.type === 'success' ? '✅' : lastSummary.type === 'error' ? '❌' : 'ℹ️'}</span>
                 {lastSummary.title}
               </p>
               <p className="mt-1 text-slate-700">{lastSummary.details}</p>
+              {typeof lastSummary.topScore === 'number' && (
+                <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-800 border border-slate-200">
+                  <span>Top Match Compatibility:</span>
+                  <span className="text-blue-700 font-bold">{lastSummary.topScore}%</span>
+                </div>
+              )}
             </div>
             <button
               type="button"
               onClick={() => setLastSummary(null)}
-              className="text-slate-400 hover:text-slate-600"
+              className="text-slate-400 hover:text-slate-600 text-sm font-bold"
             >
               ✕
             </button>
@@ -325,7 +610,7 @@ function RocketIcon() {
 
 function SearchIcon() {
   return (
-    <svg className="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
       <circle cx="8" cy="8" r="5" />
       <path strokeLinecap="round" d="m12 12 4 4" />
     </svg>

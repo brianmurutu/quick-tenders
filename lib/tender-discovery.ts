@@ -22,6 +22,7 @@ import {
   type SourceRunResult,
 } from '@/lib/tender-sources'
 import { createAdminClient, type SupabaseAdminClient } from '@/lib/supabase/admin'
+import { sendRunCompletionNotification } from '@/lib/discovery-notifications'
 
 export type CompanyRunResult = {
   companyId: string
@@ -121,6 +122,23 @@ export type RunOptions = {
    * harness passes a deterministic stand-in. See scripts/verify-pipeline.mjs.
    */
   client?: AiClient
+  /**
+   * Custom sectors of interest for on-demand runs.
+   * If provided, overrides company profile sectors for this run.
+   */
+  customSectors?: string[]
+  /**
+   * Whether to send email/SMS completion notifications (default: true).
+   */
+  notify?: boolean
+  /**
+   * If true, scores all open tenders regardless of whether they were previously seen.
+   */
+  forceRescore?: boolean
+  /**
+   * Optional custom next run description text.
+   */
+  nextRunDescription?: string
 }
 
 export async function runDiscovery(
@@ -190,7 +208,14 @@ export async function runDiscovery(
       }
 
       considered++
-      companies.push(await runForCompany(supabase, grok, company, tenders, threshold))
+      companies.push(
+        await runForCompany(supabase, grok, company, tenders, threshold, {
+          customSectors: options.customSectors,
+          notify: options.notify,
+          forceRescore: options.forceRescore,
+          nextRunDescription: options.nextRunDescription,
+        }),
+      )
     }
   }
 
@@ -215,6 +240,10 @@ async function runForCompany(
   company: ScoringCompany,
   tenders: RawTender[],
   threshold: number,
+  options?: Pick<
+    RunOptions,
+    'customSectors' | 'notify' | 'forceRescore' | 'nextRunDescription'
+  >,
 ): Promise<CompanyRunResult> {
   const result: CompanyRunResult = {
     companyId: company.id,
@@ -227,6 +256,11 @@ async function runForCompany(
     errors: [],
   }
 
+  const effectiveCompany =
+    options?.customSectors && options.customSectors.length > 0
+      ? { ...company, sectors_of_interest: options.customSectors }
+      : company
+
   let existing: Set<string>
 
   try {
@@ -237,13 +271,37 @@ async function runForCompany(
     return result
   }
 
-  // Do not pay to score a tender this company already has.
+  // Do not pay to score a tender this company already has, unless forced.
   const unseen = tenders.filter((tender) => !existing.has(tender.source_url))
   result.skippedExisting = tenders.length - unseen.length
 
-  if (unseen.length === 0) return result
+  const toScore = options?.forceRescore ? tenders : unseen
 
-  const { scores, errors } = await scoreTendersForCompany(grok, company, unseen)
+  if (toScore.length === 0) {
+    if (options?.notify !== false) {
+      try {
+        await sendRunCompletionNotification(
+          {
+            companyId: company.id,
+            companyName: company.name,
+            sectorsChecked: effectiveCompany.sectors_of_interest || [],
+            tendersScanned: tenders.length,
+            matchedCount: 0,
+            topScore: null,
+            nextRunDescription: options?.nextRunDescription,
+          },
+          supabase,
+        )
+      } catch (notifyErr) {
+        result.errors.push(
+          `Notification dispatch failed: ${notifyErr instanceof Error ? notifyErr.message : String(notifyErr)}`,
+        )
+      }
+    }
+    return result
+  }
+
+  const { scores, errors } = await scoreTendersForCompany(grok, effectiveCompany, toScore)
   result.errors.push(...errors)
   result.scored = scores.length
 
@@ -254,35 +312,61 @@ async function runForCompany(
   const matches = scores.filter((score) => score.match_score >= threshold)
   result.aboveThreshold = matches.length
 
-  if (matches.length === 0) return result
+  if (matches.length > 0) {
+    // onConflict names the unique index from 0005, and ignoreDuplicates makes a
+    // re-run a no-op rather than an error.
+    const { data, error } = await supabase
+      .from('tenders_matched')
+      .upsert(
+        matches.map((match) => ({
+          company_id: company.id,
+          title: match.tender.title,
+          source_url: match.tender.source_url,
+          deadline: match.tender.deadline,
+          summary: match.summary,
+          match_score: match.match_score,
+          procuring_entity: match.tender.procuring_entity,
+          status: 'new' as const,
+        })),
+        { onConflict: 'company_id,source_url', ignoreDuplicates: true },
+      )
+      .select('id')
 
-  // onConflict names the unique index from 0005, and ignoreDuplicates makes a
-  // re-run a no-op rather than an error. The index is what actually enforces
-  // this; the earlier read is only an optimisation.
-  const { data, error } = await supabase
-    .from('tenders_matched')
-    .upsert(
-      matches.map((match) => ({
-        company_id: company.id,
-        title: match.tender.title,
-        source_url: match.tender.source_url,
-        deadline: match.tender.deadline,
-        summary: match.summary,
-        match_score: match.match_score,
-        procuring_entity: match.tender.procuring_entity,
-        status: 'new' as const,
-      })),
-      { onConflict: 'company_id,source_url', ignoreDuplicates: true },
-    )
-    .select('id')
-
-  if (error) {
-    result.errors.push(`Insert failed: ${error.message}`)
-
-    return result
+    if (error) {
+      result.errors.push(`Insert failed: ${error.message}`)
+    } else {
+      result.inserted = data?.length ?? 0
+    }
   }
 
-  result.inserted = data?.length ?? 0
+  // Dispatch run completion notification (mail and SMS)
+  if (options?.notify !== false) {
+    try {
+      await sendRunCompletionNotification(
+        {
+          companyId: company.id,
+          companyName: company.name,
+          sectorsChecked: effectiveCompany.sectors_of_interest || [],
+          tendersScanned: tenders.length,
+          matchedCount: result.aboveThreshold,
+          topScore: result.topScore,
+          matchedTenders: matches.map((m) => ({
+            title: m.tender.title,
+            procuringEntity: m.tender.procuring_entity,
+            deadline: m.tender.deadline,
+            matchScore: m.match_score,
+            summary: m.summary,
+          })),
+          nextRunDescription: options?.nextRunDescription,
+        },
+        supabase,
+      )
+    } catch (notifyErr) {
+      result.errors.push(
+        `Notification dispatch failed: ${notifyErr instanceof Error ? notifyErr.message : String(notifyErr)}`,
+      )
+    }
+  }
 
   return result
 }
