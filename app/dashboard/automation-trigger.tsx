@@ -87,7 +87,7 @@ export function AutomationTrigger({
       } else {
         setPhoneFeedback(`Error: ${res.message}`)
       }
-    } catch (err) {
+    } catch {
       setPhoneFeedback('Failed to update phone.')
     } finally {
       setPhoneSaving(false)

@@ -211,6 +211,7 @@ export function createAiClient(): AiClient {
 
       if (!response.ok) {
         if (response.status === 429 && attempt < maxAttempts) {
+          lastError = new Error(`${spec.label} hit rate limit (429)`)
           const retryHeader = response.headers.get('retry-after')
           const waitMs = retryHeader ? Math.max(1000, Number(retryHeader) * 1000) : 5000
           console.warn(
