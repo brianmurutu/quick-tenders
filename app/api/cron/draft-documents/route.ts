@@ -32,10 +32,10 @@ async function handle(request: NextRequest): Promise<NextResponse> {
   const dryRun = url.searchParams.get('dry_run') === 'true'
   const limitParam = Number(url.searchParams.get('limit'))
   const limit =
-    Number.isInteger(limitParam) && limitParam > 0 ? Math.min(limitParam, 200) : undefined
+    Number.isInteger(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 5
 
   try {
-    const summary = await runDrafting({ dryRun, limit })
+    const summary = await runDrafting({ dryRun, limit, maxDurationMs: 180_000 })
 
     console.log(formatDraftingSummary(summary))
 

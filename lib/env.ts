@@ -39,17 +39,33 @@ export function getSupabaseEnv(): SupabaseEnv {
   return env
 }
 
+const PRODUCTION_SITE_URL = 'https://quicktenders.co.ke'
 const DEFAULT_SITE_URL = 'http://localhost:3000'
 
 /**
- * Public origin of this deployment, used to build the email confirmation
- * redirect. Must also be added to the Supabase project Redirect URLs allow
- * list, or confirmation links will be rejected.
+ * Public origin of this deployment, used to build email and SMS links and
+ * redirects. Defaults to canonical https://quicktenders.co.ke in production.
  */
 export function getSiteUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+  const raw = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL)?.trim()
 
-  if (raw) return raw.replace(/\/+$/, '')
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production'
+
+  if (raw) {
+    const formatted = raw.startsWith('http') ? raw : `https://${raw}`
+    const cleaned = formatted.replace(/\/+$/, '')
+    // Never leak localhost or vercel.app in production
+    if (isProduction && (cleaned.includes('localhost') || cleaned.includes('vercel.app'))) {
+      return PRODUCTION_SITE_URL
+    }
+    return cleaned
+  }
+
+  if (isProduction) {
+    return PRODUCTION_SITE_URL
+  }
 
   const vercelEnv =
     process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
@@ -57,7 +73,7 @@ export function getSiteUrl(): string {
     process.env.NEXT_PUBLIC_VERCEL_URL?.trim() ||
     process.env.VERCEL_URL?.trim()
 
-  if (vercelEnv) {
+  if (vercelEnv && process.env.VERCEL_ENV === 'preview') {
     const formatted = vercelEnv.startsWith('http') ? vercelEnv : `https://${vercelEnv}`
     return formatted.replace(/\/+$/, '')
   }

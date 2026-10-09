@@ -92,7 +92,7 @@
         200
       ],
       "parameters": {
-        "url": "https://quicktenders.co.ke/api/cron/draft-documents",
+        "url": "https://quicktenders.co.ke/api/cron/draft-documents?limit=5",
         "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
@@ -239,6 +239,7 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "errorWorkflow": "rTljaXrdwxdqg4UW"
   }
 }

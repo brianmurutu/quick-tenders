@@ -83,13 +83,15 @@ export function senderIsUnverifiable(from: string): boolean {
   return domain !== null && UNVERIFIABLE_SENDER_DOMAINS.has(domain)
 }
 
+export const RESEND_DEFAULT_PRODUCTION_SENDER = 'QuickTenders <notifications@quicktenders.co.ke>'
+export const RESEND_DEFAULT_REPLY_TO = 'quicktenders.ke@gmail.com'
+
 /**
  * Whether to silently fall back to the Resend test sender.
  *
  * Only outside production, and only when the configured sender is one that can
- * never be verified. In production a broken sender must fail loudly rather than
- * quietly sending from resend.dev, which would reach nobody but the account
- * owner and look like success.
+ * never be verified. In production a broken sender must fall back to the verified
+ * quicktenders.co.ke sender rather than failing or sending from resend.dev.
  */
 function shouldFallBack(from: string): boolean {
   if (process.env.NODE_ENV === 'production') return false
@@ -102,21 +104,35 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   const apiKey = process.env.RESEND_API_KEY?.trim()
   const configuredFrom = process.env.RESEND_FROM_EMAIL?.trim()
 
-  if (!apiKey || !configuredFrom) {
+  if (!apiKey) {
     return { ok: false, error: resendConfigHint() }
   }
 
-  const usedFallbackSender = shouldFallBack(configuredFrom)
-  const from = usedFallbackSender ? RESEND_TEST_SENDER : configuredFrom
+  let from = configuredFrom || RESEND_DEFAULT_PRODUCTION_SENDER
+  let usedFallbackSender = false
 
-  if (usedFallbackSender) {
-    console.warn(
-      `[resend] RESEND_FROM_EMAIL is ${configuredFrom}, whose domain ` +
-        `(${senderDomain(configuredFrom)}) can never be verified with Resend. ` +
-        `Falling back to ${RESEND_TEST_SENDER}, which only delivers to the address ` +
-        'that owns the Resend account. Verify a domain you control and set ' +
-        'RESEND_FROM_EMAIL to an address on it before going live.',
-    )
+  const replyTo =
+    input.replyTo ||
+    process.env.RESEND_REPLY_TO?.trim() ||
+    (configuredFrom && senderIsUnverifiable(configuredFrom)
+      ? configuredFrom
+      : RESEND_DEFAULT_REPLY_TO)
+
+  if (!configuredFrom || senderIsUnverifiable(configuredFrom)) {
+    if (shouldFallBack(configuredFrom || '')) {
+      from = RESEND_TEST_SENDER
+      usedFallbackSender = true
+      console.warn(
+        `[resend] RESEND_FROM_EMAIL is ${configuredFrom ?? 'unset'}, whose domain ` +
+          `can never be verified with Resend. Falling back to ${RESEND_TEST_SENDER}.`,
+      )
+    } else {
+      from = RESEND_DEFAULT_PRODUCTION_SENDER
+      console.warn(
+        `[resend] RESEND_FROM_EMAIL is ${configuredFrom ?? 'unset'} (unverifiable). ` +
+          `Using verified domain sender: ${RESEND_DEFAULT_PRODUCTION_SENDER} with replyTo: ${replyTo}`,
+      )
+    }
   }
 
   const recipients = input.to.map((address) => address.trim()).filter(Boolean)
@@ -138,7 +154,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         subject: input.subject,
         html: input.html,
         text: input.text,
-        ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })

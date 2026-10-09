@@ -121,6 +121,11 @@ export type RunOptions = {
    * credits. See scripts/verify-pipeline.mjs.
    */
   client?: AiClient
+  /**
+   * Maximum execution time budget in milliseconds. The loop will stop picking up
+   * new tenders once this budget is approached, returning cleanly before timing out.
+   */
+  maxDurationMs?: number
 }
 
 export async function runDrafting(
@@ -143,7 +148,7 @@ export async function runDrafting(
   }
 
   const { data, error } = await supabase.rpc('pending_tender_drafts', {
-    p_limit: options.limit ?? 25,
+    p_limit: options.limit ?? 5,
   })
 
   if (error) {
@@ -176,7 +181,18 @@ export async function runDrafting(
     return summarise(startedAt, pending.length, tenders, errors, grok.model)
   }
 
+  const maxDurationMs = options.maxDurationMs ?? 60_000
+
   for (const row of pending) {
+    const elapsed = Date.now() - startedAt.getTime()
+    if (tenders.length > 0 && elapsed > maxDurationMs - 15_000) {
+      console.warn(
+        `[draft-documents] Time budget reached (${elapsed}ms elapsed, budget ${maxDurationMs}ms). ` +
+          `Processed ${tenders.length}/${pending.length} tenders; remaining will be picked up on next tick.`,
+      )
+      break
+    }
+
     tenders.push(await processTender(supabase, grok, row))
   }
 
@@ -212,13 +228,13 @@ async function processTender(
   const context = toDraftContext(pending)
 
   if (pending.document_count === 0) {
-    for (const docType of DOCUMENT_TYPES) {
+    // Draft document types in parallel to cut generation time in half
+    const draftTasks = DOCUMENT_TYPES.map(async (docType) => {
       try {
         const drafted = await draftDocument(grok, docType, context)
 
         if (!drafted) {
-          result.errors.push(`${docType}: the model returned no usable document`)
-          continue
+          return { docType, error: `${docType}: the model returned no usable document` }
         }
 
         const rendered = renderDocument(drafted, context)
@@ -231,8 +247,7 @@ async function processTender(
           .upload(path, rendered.bytes, { contentType: DOCX_MIME, upsert: true })
 
         if (uploadError) {
-          result.errors.push(`${docType}: upload failed, ${uploadError.message}`)
-          continue
+          return { docType, error: `${docType}: upload failed, ${uploadError.message}` }
         }
 
         // Only recorded once the bytes are stored, so a tender_documents row
@@ -249,15 +264,24 @@ async function processTender(
           )
 
         if (insertError) {
-          result.errors.push(`${docType}: could not record document, ${insertError.message}`)
-          continue
+          return { docType, error: `${docType}: could not record document, ${insertError.message}` }
         }
 
-        result.documentsCreated.push(docType)
+        return { docType, success: true }
       } catch (error) {
-        result.errors.push(
-          `${docType}: ${error instanceof Error ? error.message : String(error)}`,
-        )
+        return {
+          docType,
+          error: `${docType}: ${error instanceof Error ? error.message : String(error)}`,
+        }
+      }
+    })
+
+    const draftResults = await Promise.all(draftTasks)
+    for (const res of draftResults) {
+      if ('error' in res && res.error) {
+        result.errors.push(res.error)
+      } else if ('success' in res && res.success) {
+        result.documentsCreated.push(res.docType)
       }
     }
   }
@@ -323,10 +347,12 @@ async function processTender(
 
   result.emailed = true
 
-  // Send SMS notification if phone numbers are available.
+  // Send SMS notification ONLY for high-priority opportunities (compatibility >= 80)
+  // to avoid sending an SMS flood for every individual tender match.
+  const isHighPriority = (pending.match_score ?? 0) >= 80
   const phones = (pending.representative_phones ?? []).filter(Boolean) as string[]
 
-  if (phones.length > 0 && textSmsConfigured()) {
+  if (phones.length > 0 && textSmsConfigured() && isHighPriority) {
     const smsInput: TenderSmsInput = {
       tenderId: pending.tender_id,
       title: pending.title,

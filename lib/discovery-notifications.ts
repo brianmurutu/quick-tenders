@@ -179,8 +179,8 @@ Quick Tenders Team`
       }
     }
 
-    if (textSmsConfigured() && phones.length > 0) {
-      const smsText = `QuickTenders: Found ${input.matchedCount} tender match(es) for ${companyName}! Top score: ${input.topScore ?? 0}%. Next scan: ${nextRun}. Review: ${dashboardUrl}`.slice(0, 160)
+    if (textSmsConfigured() && phones.length > 0 && input.matchedCount > 0) {
+      const smsText = `QuickTenders: Found ${input.matchedCount} tender match(es) for ${companyName}! Top match: ${input.topScore ?? 0}%. Review: ${dashboardUrl}`.slice(0, 160)
       const smsRes = await sendSms({
         to: phones,
         message: smsText,
@@ -196,6 +196,8 @@ Quick Tenders Team`
   }
 
   // --- CASE 2: NO MATCHES FOUND (0) ---
+  // We send email scan summaries, but do NOT send SMS notifications when there
+  // are 0 matches to prevent SMS credit waste and notification fatigue.
   const subject = `Quick Tenders: Discovery Scan Complete (0 new matches for ${companyName})`
 
   const emailHtml = `<!doctype html>
@@ -261,18 +263,6 @@ Quick Tenders Team`
     }
   }
 
-  if (textSmsConfigured() && phones.length > 0) {
-    const smsText = `QuickTenders: 0 new matches in latest scan for ${companyName}. Next automated scan: ${nextRun}. Dashboard: ${dashboardUrl}`.slice(0, 160)
-    const smsRes = await sendSms({
-      to: phones,
-      message: smsText,
-    })
-    if (smsRes.ok) {
-      result.smsSent = true
-    } else {
-      result.errors.push(`SMS error: ${smsRes.error}`)
-    }
-  }
 
   return result
 }
