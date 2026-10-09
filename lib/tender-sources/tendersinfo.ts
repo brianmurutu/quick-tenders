@@ -25,7 +25,7 @@ const API_URL = 'https://www.tendersinfo.com/esearch/tender_sector_test'
 const FETCH_TIMEOUT_MS = 15_000
 const FALLBACK_ENTITY = 'TendersInfo'
 const KENYA_COUNTRY_CODE = '0100404'
-const PAGE_SIZE = 50
+const PAGE_SIZE = 25
 
 type TendersInfoItem = {
   site_tender_id?: string

@@ -139,6 +139,11 @@ export type RunOptions = {
    * Optional custom next run description text.
    */
   nextRunDescription?: string
+  /**
+   * Maximum execution time budget in milliseconds. The loop will stop scoring
+   * remaining companies/tenders once this budget is approached, returning cleanly before timing out.
+   */
+  maxDurationMs?: number
 }
 
 export async function runDiscovery(
@@ -197,7 +202,23 @@ export async function runDiscovery(
       ? allCompanies.filter((company) => company.id === options.companyId)
       : allCompanies
 
+    const maxDurationMs = options.maxDurationMs ?? 180_000
+
     for (const company of selected) {
+      const elapsed = Date.now() - startedAt.getTime()
+      if (companies.length > 0 && elapsed > maxDurationMs - 20_000) {
+        console.warn(
+          `[discover-tenders] Time budget reached (${elapsed}ms elapsed, budget ${maxDurationMs}ms). ` +
+            `Scored for ${companies.length}/${selected.length} companies; remaining will be picked up on next run.`,
+        )
+        companiesSkipped.push({
+          companyId: company.id,
+          companyName: company.name,
+          reason: `Deferred to next run due to execution time budget (${elapsed}ms elapsed)`,
+        })
+        continue
+      }
+
       if (!profileIsUsable(company)) {
         companiesSkipped.push({
           companyId: company.id,

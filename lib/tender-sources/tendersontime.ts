@@ -70,28 +70,17 @@ export function parseTendersOnTimeHtml(html: string): RawTender[] {
 export const tendersOnTimeSource: TenderSource = {
   id: 'tendersontime',
   label: 'TendersOnTime (tendersontime.com)',
+  blockedReason:
+    'tendersontime.com employs Cloudflare bot-management / WAF returning HTTP 403 to automated crawlers.',
 
   isConfigured() {
-    return true
+    return false
   },
 
-  configHint: 'Fetches Kenya tenders from tendersontime.com.',
+  configHint: 'tendersontime.com is protected by Cloudflare bot management (HTTP 403).',
 
   async fetchTenders(): Promise<RawTender[]> {
-    const response = await fetch(SOURCE_URL, {
-      headers: {
-        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'user-agent': 'QuickTender-Bot/1.0 (+https://quicktenders.co.ke)',
-      },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      cache: 'no-store',
-    })
-
-    if (!response.ok) {
-      throw new Error(`tendersontime.com returned HTTP ${response.status}`)
-    }
-
-    const html = await response.text()
-    return parseTendersOnTimeHtml(html)
+    throw new Error('tendersOnTimeSource is currently blocked by Cloudflare (HTTP 403)')
   },
 }
+

@@ -213,7 +213,17 @@ export function createAiClient(): AiClient {
         if (response.status === 429 && attempt < maxAttempts) {
           lastError = new Error(`${spec.label} hit rate limit (429)`)
           const retryHeader = response.headers.get('retry-after')
-          const waitMs = retryHeader ? Math.max(1000, Number(retryHeader) * 1000) : 5000
+          const headerWaitSec = retryHeader ? Number(retryHeader) : null
+
+          // If the provider asks us to wait longer than 15s (e.g. daily limit hit asking for 18 minutes),
+          // don't freeze the process and trigger a gateway timeout. Fail fast so callers proceed.
+          if (headerWaitSec && headerWaitSec > 15) {
+            throw new Error(
+              `${spec.label} (${model}) rate limit exceeded (${headerWaitSec}s cooldown required): ${errorMessage(payload, response.status)}`,
+            )
+          }
+
+          const waitMs = headerWaitSec ? Math.max(1000, headerWaitSec * 1000) : 3000
           console.warn(
             `[ai] ${spec.label} 429 rate limit hit, waiting ${waitMs}ms before retry ${attempt}/${maxAttempts}...`,
           )

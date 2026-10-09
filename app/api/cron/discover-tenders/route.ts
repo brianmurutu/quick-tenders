@@ -48,6 +48,7 @@ async function handle(request: NextRequest): Promise<NextResponse> {
       sourceIds: sourceParam
         ? sourceParam.split(',').map((id) => id.trim()).filter(Boolean)
         : undefined,
+      maxDurationMs: 180_000,
     })
 
     // The run log the brief asks for: per source, and per company.

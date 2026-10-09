@@ -24,7 +24,7 @@ const SOURCE_URL = 'https://gaa.go.ke/all-tenders'
 const ORIGIN = 'https://gaa.go.ke'
 const FETCH_TIMEOUT_MS = 25_000
 const FALLBACK_ENTITY = 'Government Advertising Agency (GAA)'
-const MAX_ROWS = 100
+const MAX_ROWS = 25
 
 export function parseGaaHtml(html: string): RawTender[] {
   const tenders: RawTender[] = []
