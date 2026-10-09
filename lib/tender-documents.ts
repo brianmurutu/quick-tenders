@@ -126,6 +126,12 @@ export type RunOptions = {
    * new tenders once this budget is approached, returning cleanly before timing out.
    */
   maxDurationMs?: number
+  /**
+   * Whether to send individual per-tender notification emails and SMS.
+   * Defaults to false: clients already receive the consolidated discovery summary
+   * email ("Quick Tenders: N New Tender Matches for Company"), avoiding inbox spam.
+   */
+  sendIndividualEmails?: boolean
 }
 
 export async function runDrafting(
@@ -193,7 +199,7 @@ export async function runDrafting(
       break
     }
 
-    tenders.push(await processTender(supabase, grok, row))
+    tenders.push(await processTender(supabase, grok, row, options))
   }
 
   return summarise(startedAt, pending.length, tenders, errors, grok.model)
@@ -214,6 +220,7 @@ async function processTender(
   supabase: SupabaseAdminClient,
   grok: AiClient,
   pending: PendingDraft,
+  options: RunOptions = {},
 ): Promise<TenderDraftResult> {
   const result: TenderDraftResult = {
     tenderId: pending.tender_id,
@@ -300,6 +307,26 @@ async function processTender(
     return result
   }
 
+  // Stamp notified_at once documents are ready so the queue knows this tender is drafted
+  const { error: stampError } = await supabase
+    .from('tenders_matched')
+    .update({ notified_at: new Date().toISOString() })
+    .eq('id', pending.tender_id)
+
+  if (stampError) {
+    result.errors.push(
+      `notified_at could not be stamped: ${stampError.message}`,
+    )
+  }
+
+  // Individual emails are disabled by default during batch runs to prevent spamming
+  // clients with dozens of separate emails. The consolidated discovery summary
+  // notification ("Quick Tenders: N New Tender Matches for Company") already notified them.
+  if (!options.sendIndividualEmails) {
+    result.skipped = 'Consolidated into discovery summary notification'
+    return result
+  }
+
   const recipients = (pending.representative_emails ?? []).filter(Boolean)
 
   if (recipients.length === 0) {
@@ -366,21 +393,6 @@ async function processTender(
       // SMS failure is non-fatal: the email was already sent.
       result.errors.push(`SMS notification failed (non-fatal): ${smsSent.error}`)
     }
-  }
-
-  // Stamped only after Resend accepted the message. If this update fails the
-  // representative gets one duplicate on the next run, which is the better way
-  // round than never hearing about the tender at all.
-  const { error: stampError } = await supabase
-    .from('tenders_matched')
-    .update({ notified_at: new Date().toISOString() })
-    .eq('id', pending.tender_id)
-
-  if (stampError) {
-    result.errors.push(
-      `Email sent but notified_at could not be stamped, so a duplicate is ` +
-        `possible next run: ${stampError.message}`,
-    )
   }
 
   return result

@@ -106,49 +106,126 @@ export async function sendRunCompletionNotification(
 
     const topTendersHtml = (input.matchedTenders || [])
       .slice(0, 5)
-      .map(
-        (t) => `
-        <div style="padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;">
-          <div style="font-weight:600;font-size:15px;color:#0f172a;margin-bottom:4px;">${escapeHtml(t.title)}</div>
-          <div style="font-size:13px;color:#475569;margin-bottom:6px;">
-            ${escapeHtml(t.procuringEntity || 'Procuring Entity')} &bull; Deadline: <strong>${escapeHtml(t.deadline || 'Open')}</strong>
+      .map((t) => {
+        const isTopMatch = t.matchScore >= 80
+        const badgeBg = isTopMatch ? '#dcfce7' : '#dbeafe'
+        const badgeColor = isTopMatch ? '#15803d' : '#1d4ed8'
+
+        return `
+        <div style="padding:16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="font-weight:700;font-size:15px;color:#0f172a;line-height:1.4;margin-bottom:6px;">
+            ${escapeHtml(t.title)}
           </div>
-          <div style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:12px;font-weight:700;background:#dbeafe;color:#1e40af;">
-            ${t.matchScore}% Compatibility
+          <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
+            <strong style="color:#334155;">${escapeHtml(t.procuringEntity || 'Procuring Entity')}</strong> &bull; Deadline: <strong style="color:#0f172a;">${escapeHtml(t.deadline || 'Open')}</strong>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:700;background:${badgeBg};color:${badgeColor};">
+              ${t.matchScore}% Compatibility
+            </span>
+            <span style="font-size:12px;color:#059669;font-weight:600;">
+              ✓ First-draft bid documents ready
+            </span>
           </div>
         </div>
-      `,
-      )
+      `
+      })
       .join('')
 
     const emailHtml = `<!doctype html>
 <html lang="en">
-<body style="margin:0;padding:24px;background:#f8fafc;font-family:ui-sans-serif,system-ui,sans-serif;color:#0f172a;">
-  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-    <tr><td style="padding:28px;">
-      <div style="display:inline-block;padding:4px 10px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:6px;margin-bottom:16px;">
-        New Tender Matches
-      </div>
-      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#0f172a;">Hello ${escapeHtml(primaryName)},</h2>
-      <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#334155;">
-        Our automated discovery scan just identified <strong>${input.matchedCount} matching public tender opportunity${input.matchedCount === 1 ? '' : 'ies'}</strong> for <strong>${escapeHtml(companyName)}</strong> with a top match score of <strong>${input.topScore ?? 0}%</strong>.
-      </p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin:0;padding:24px 12px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+    <!-- Brand Header -->
+    <tr>
+      <td style="background:#0f172a;padding:24px 28px;border-bottom:3px solid #1d4ed8;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+          <tr>
+            <td>
+              <div style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">
+                <span style="color:#3b82f6;">⚡</span> Quick Tenders
+              </div>
+              <div style="font-size:12px;color:#94a3b8;margin-top:4px;">
+                Kenya's AI Agent for Tender Discovery &amp; Automated Bid Drafting
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
 
-      <div style="margin:0 0 24px;">
-        ${topTendersHtml}
-      </div>
+    <!-- Body Content -->
+    <tr>
+      <td style="padding:28px;">
+        <div style="display:inline-block;padding:4px 10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:6px;margin-bottom:16px;">
+          New Match Alert
+        </div>
 
-      <div style="padding:16px;background:#f1f5f9;border-radius:8px;margin-bottom:24px;font-size:13px;line-height:1.6;color:#475569;">
-        <strong>Sectors scanned:</strong> ${escapeHtml(sectorsStr)}<br/>
-        <strong>Next automated scan:</strong> <span style="color:#0f172a;font-weight:600;">${escapeHtml(nextRun)}</span> as per your scheduled cronjob.
-      </div>
+        <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#0f172a;">Hello ${escapeHtml(primaryName)},</h2>
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#334155;">
+          Our automated discovery engine identified <strong>${input.matchedCount} new matching tender opportunit${input.matchedCount === 1 ? 'y' : 'ies'}</strong> for <strong>${escapeHtml(companyName)}</strong> with a top match score of <strong>${input.topScore ?? 0}%</strong>.
+        </p>
 
-      <div style="text-align:center;margin-bottom:20px;">
-        <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">
-          Review Tenders & Draft Proposals
-        </a>
-      </div>
-    </td></tr>
+        <!-- Metric Highlight Bar -->
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px;border-collapse:collapse;">
+          <tr>
+            <td style="padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;width:50%;">
+              <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;">New Matches</div>
+              <div style="font-size:22px;font-weight:800;color:#1d4ed8;margin-top:2px;">${input.matchedCount}</div>
+            </td>
+            <td style="width:12px;"></td>
+            <td style="padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;width:50%;">
+              <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;">Top Compatibility</div>
+              <div style="font-size:22px;font-weight:800;color:#059669;margin-top:2px;">${input.topScore ?? 0}%</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Tenders List -->
+        <div style="margin:0 0 24px;">
+          <div style="font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#475569;margin-bottom:12px;">
+            Top Matched Opportunities
+          </div>
+          ${topTendersHtml}
+        </div>
+
+        <!-- Callout Banner -->
+        <div style="padding:14px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;margin-bottom:24px;font-size:13px;line-height:1.6;color:#1e40af;">
+          <strong>📄 Automated Bid Documents:</strong> First-draft Cover Letters and Technical Proposal skeletons are being compiled for you. You can review, edit, and download them directly from your dashboard.
+        </div>
+
+        <!-- Scan Meta Info -->
+        <div style="padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:28px;font-size:13px;line-height:1.6;color:#64748b;">
+          <div>&bull; <strong>Sectors analyzed:</strong> ${escapeHtml(sectorsStr)}</div>
+          <div>&bull; <strong>Next automated scan:</strong> <span style="color:#0f172a;font-weight:600;">${escapeHtml(nextRun)}</span></div>
+        </div>
+
+        <!-- CTA Button -->
+        <div style="text-align:center;margin-bottom:16px;">
+          <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:700;letter-spacing:-0.01em;box-shadow:0 4px 6px -1px rgba(29,78,216,0.3);">
+            Review Tenders &amp; Download Proposals →
+          </a>
+        </div>
+      </td>
+    </tr>
+
+    <!-- Branded Footer -->
+    <tr>
+      <td style="background:#f8fafc;padding:20px 28px;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.6;color:#64748b;text-align:center;">
+        <p style="margin:0 0 6px;font-weight:700;color:#0f172a;">Quick Tenders Kenya</p>
+        <p style="margin:0 0 6px;">Automated procurement monitoring across PPIP (tenders.go.ke), GAA &amp; 47 Counties.</p>
+        <p style="margin:0;">
+          <a href="https://quicktenders.co.ke" style="color:#1d4ed8;text-decoration:none;font-weight:600;">quicktenders.co.ke</a> &bull;
+          <a href="${escapeHtml(dashboardUrl)}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Dashboard</a> &bull;
+          <a href="mailto:notifications@quicktenders.co.ke" style="color:#1d4ed8;text-decoration:none;">Support</a>
+        </p>
+      </td>
+    </tr>
   </table>
 </body>
 </html>`
@@ -160,10 +237,12 @@ Top match score: ${input.topScore ?? 0}%
 Sectors scanned: ${sectorsStr}
 Next automated scan: ${nextRun} as per your scheduled cronjob.
 
+First-draft Cover Letters & Technical Proposals are being compiled for you.
 Review on your dashboard:
 ${dashboardUrl}
 
-Quick Tenders Team`
+Quick Tenders Team
+https://quicktenders.co.ke`
 
     if (resendConfigured() && emails.length > 0) {
       const emailRes = await sendEmail({
@@ -196,73 +275,8 @@ Quick Tenders Team`
   }
 
   // --- CASE 2: NO MATCHES FOUND (0) ---
-  // We send email scan summaries, but do NOT send SMS notifications when there
-  // are 0 matches to prevent SMS credit waste and notification fatigue.
-  const subject = `Quick Tenders: Discovery Scan Complete (0 new matches for ${companyName})`
-
-  const emailHtml = `<!doctype html>
-<html lang="en">
-<body style="margin:0;padding:24px;background:#f8fafc;font-family:ui-sans-serif,system-ui,sans-serif;color:#0f172a;">
-  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-    <tr><td style="padding:28px;">
-      <div style="display:inline-block;padding:4px 10px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:6px;margin-bottom:16px;">
-        Automated Scan Summary
-      </div>
-      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#0f172a;">Hello ${escapeHtml(primaryName)},</h2>
-      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">
-        Our automated discovery scan just checked procurement portals across Kenya (GAA, TendersInfo, Tenders Kenya, etc.) for <strong>${escapeHtml(companyName)}</strong>.
-      </p>
-
-      <div style="padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:24px;font-size:14px;line-height:1.7;color:#475569;">
-        <div>&bull; <strong>Tenders scanned:</strong> ${input.tendersScanned}</div>
-        <div>&bull; <strong>Sectors analyzed:</strong> ${escapeHtml(sectorsStr)}</div>
-        <div>&bull; <strong>Status:</strong> 0 new tenders exceeded your compatibility threshold in this pass.</div>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #cbd5e1;color:#0f172a;font-weight:600;">
-          &bull; Next scheduled automated scan: ${escapeHtml(nextRun)}
-        </div>
-      </div>
-
-      <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#64748b;">
-        You can trigger an on-demand scan or customize target sectors at any time from your dashboard.
-      </p>
-
-      <div style="text-align:center;margin-bottom:20px;">
-        <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">
-          Open Dashboard
-        </a>
-      </div>
-    </td></tr>
-  </table>
-</body>
-</html>`
-
-  const emailText = `Hello ${primaryName},
-
-Automated AI tender scan complete for ${companyName}.
-Tenders scanned: ${input.tendersScanned}
-Sectors analyzed: ${sectorsStr}
-Status: 0 new tenders met the threshold in this scan.
-Next scheduled scan: ${nextRun} as per your scheduled cronjob.
-
-Access your dashboard anytime:
-${dashboardUrl}
-
-Quick Tenders Team`
-
-  if (resendConfigured() && emails.length > 0) {
-    const emailRes = await sendEmail({
-      to: emails,
-      subject,
-      html: emailHtml,
-      text: emailText,
-    })
-    if (emailRes.ok) {
-      result.emailSent = true
-    } else {
-      result.errors.push(`Email error: ${emailRes.error}`)
-    }
-  }
-
-
+  // When no matches are found, DO NOT send email or SMS to prevent spamming clients.
+  // The system logs this pass and checks again on the next cron cycle.
   return result
 }
+

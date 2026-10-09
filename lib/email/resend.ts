@@ -83,7 +83,7 @@ export function senderIsUnverifiable(from: string): boolean {
   return domain !== null && UNVERIFIABLE_SENDER_DOMAINS.has(domain)
 }
 
-export const RESEND_DEFAULT_PRODUCTION_SENDER = 'QuickTenders <notifications@quicktenders.co.ke>'
+export const RESEND_DEFAULT_PRODUCTION_SENDER = 'Quick Tenders <notifications@quicktenders.co.ke>'
 export const RESEND_DEFAULT_REPLY_TO = 'quicktenders.ke@gmail.com'
 
 /**
