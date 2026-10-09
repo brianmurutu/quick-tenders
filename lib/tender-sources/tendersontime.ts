@@ -18,8 +18,6 @@ import {
   type TenderSource,
 } from './types'
 
-const SOURCE_URL = 'https://www.tendersontime.com/kenya-tenders/'
-const FETCH_TIMEOUT_MS = 15_000
 const FALLBACK_ENTITY = 'Government of Kenya (TendersOnTime)'
 
 export function parseTendersOnTimeHtml(html: string): RawTender[] {
