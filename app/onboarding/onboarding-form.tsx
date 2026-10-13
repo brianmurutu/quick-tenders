@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 
+import { Button, CheckboxChip, Input, Select } from '@/components/ui'
 import {
   COMPANY_SIZES,
   COUNTIES,
@@ -93,33 +94,28 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
   const sectorsErrorId = `${formId}-sectors-error`
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-10">
+    <form onSubmit={handleSubmit} noValidate className="auth-form">
       {formError ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm leading-relaxed text-red-900"
-        >
+        <div role="alert" className="form-message form-message-error">
           {formError}
         </div>
       ) : null}
 
-      <Field id={`${formId}-industry`} label="Industry" error={fieldErrors.industry}>
-        {(props) => (
-          <select
-            {...props}
-            name="industry"
-            value={values.industry}
-            onChange={(event) => setField('industry', event.target.value)}
-          >
-            <option value="">Select an industry</option>
-            {INDUSTRIES.map((industry) => (
-              <option key={industry} value={industry}>
-                {industry}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+      <Select
+        id={`${formId}-industry`}
+        label="Industry"
+        name="industry"
+        value={values.industry}
+        onChange={(event) => setField('industry', event.target.value)}
+        error={fieldErrors.industry}
+      >
+        <option value="">Select an industry</option>
+        {INDUSTRIES.map((industry) => (
+          <option key={industry} value={industry}>
+            {industry}
+          </option>
+        ))}
+      </Select>
 
       <fieldset
         aria-describedby={`${
@@ -127,192 +123,100 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
         }${sectorsHintId}`}
         aria-invalid={fieldErrors.sectors_of_interest ? true : undefined}
       >
-        <legend className="text-sm font-semibold text-slate-900">
-          Sectors you want tenders for
-        </legend>
+        <legend className="ui-label">Sectors you want tenders for</legend>
 
         {fieldErrors.sectors_of_interest ? (
-          <p id={sectorsErrorId} className="mt-2 text-sm font-medium text-red-700">
+          <p id={sectorsErrorId} className="ui-error">
             {fieldErrors.sectors_of_interest}
           </p>
         ) : null}
 
-        <p id={sectorsHintId} className="mt-2 text-sm leading-relaxed text-slate-500">
+        <p id={sectorsHintId} className="ui-helper">
           Pick between 1 and {MAX_SECTORS}. Narrower profiles match better than
           broad ones. Selected {selectedCount} of {MAX_SECTORS}.
         </p>
 
-        <div className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div className="checkbox-chip-grid">
           {SECTORS.map((sector) => {
             const checked = values.sectors_of_interest.includes(sector)
             const atLimit = !checked && selectedCount >= MAX_SECTORS
 
             return (
-              <label
+              <CheckboxChip
                 key={sector}
-                className={`flex cursor-pointer items-start gap-3 text-sm ${
-                  atLimit ? 'cursor-not-allowed text-slate-400' : 'text-slate-700'
-                }`}
+                name="sectors_of_interest"
+                value={sector}
+                checked={checked}
+                disabled={atLimit}
+                onChange={() => toggleSector(sector)}
               >
-                <input
-                  type="checkbox"
-                  name="sectors_of_interest"
-                  value={sector}
-                  checked={checked}
-                  disabled={atLimit}
-                  onChange={() => toggleSector(sector)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed"
-                />
-                <span>{sector}</span>
-              </label>
+                {sector}
+              </CheckboxChip>
             )
           })}
         </div>
       </fieldset>
 
-      <div className="grid gap-8 sm:grid-cols-2">
-        <Field
+      <div className="form-two-column">
+        <Select
           id={`${formId}-region`}
           label="County"
-          hint="Where the company is based. It weights local tenders higher."
+          helperText="Where the company is based. It weights local tenders higher."
+          name="region"
+          value={values.region}
+          onChange={(event) => setField('region', event.target.value)}
           error={fieldErrors.region}
         >
-          {(props) => (
-            <select
-              {...props}
-              name="region"
-              value={values.region}
-              onChange={(event) => setField('region', event.target.value)}
-            >
-              <option value="">Select a county</option>
-              {COUNTIES.map((county) => (
-                <option key={county} value={county}>
-                  {county}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
+          <option value="">Select a county</option>
+          {COUNTIES.map((county) => (
+            <option key={county} value={county}>
+              {county}
+            </option>
+          ))}
+        </Select>
 
-        <Field
+        <Select
           id={`${formId}-company-size`}
           label="Company size"
-          hint="Used to skip tenders whose capacity requirements you could not meet."
+          helperText="Used to skip tenders whose capacity requirements you could not meet."
+          name="company_size"
+          value={values.company_size}
+          onChange={(event) => setField('company_size', event.target.value)}
           error={fieldErrors.company_size}
         >
-          {(props) => (
-            <select
-              {...props}
-              name="company_size"
-              value={values.company_size}
-              onChange={(event) => setField('company_size', event.target.value)}
-            >
-              <option value="">Select a size</option>
-              {COMPANY_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size} people
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
+          <option value="">Select a size</option>
+          {COMPANY_SIZES.map((size) => (
+            <option key={size} value={size}>
+              {size} people
+            </option>
+          ))}
+        </Select>
       </div>
 
-      <div>
-        <label
-          htmlFor={`${formId}-phone`}
-          className="block text-sm font-semibold text-slate-900"
-        >
-          Phone number{' '}
-          <span className="font-normal text-slate-500">(optional)</span>
-        </label>
-        <p className="mt-1 text-sm leading-relaxed text-slate-500">
-          Kenyan number (07XX or +2547XX). Used to send you an SMS when a new tender
-          is matched. You can skip this and add it later.
-        </p>
-        <div className="mt-2">
-          <input
-            id={`${formId}-phone`}
-            type="tel"
-            name="phone_number"
-            autoComplete="tel"
-            placeholder="0712 345 678"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors focus:border-blue-700 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-700"
-          />
-        </div>
-      </div>
+      <Input
+        id={`${formId}-phone`}
+        type="tel"
+        name="phone_number"
+        label="Phone number (optional)"
+        helperText="Kenyan number (07XX or +2547XX). Used to send you an SMS when a new tender is matched. You can skip this and add it later."
+        autoComplete="tel"
+        placeholder="0712 345 678"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+      />
 
       <div>
-        <button
+        <Button
           type="submit"
           disabled={saving}
-          className="w-full rounded-md bg-blue-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+          className="w-full sm:w-auto"
         >
           {saving ? 'Saving...' : 'Save and continue'}
-        </button>
+        </Button>
         <p className="mt-4 text-sm leading-relaxed text-slate-500">
           You can change any of this later. Nothing here is locked in.
         </p>
       </div>
     </form>
-  )
-}
-
-const controlClasses =
-  'w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors focus:border-blue-700 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-700'
-
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  children,
-}: {
-  id: string
-  label: string
-  hint?: string
-  error?: string
-  children: (props: {
-    id: string
-    className: string
-    'aria-invalid': boolean | undefined
-    'aria-describedby': string | undefined
-  }) => React.ReactNode
-}) {
-  const hintId = hint ? `${id}-hint` : undefined
-  const errorId = error ? `${id}-error` : undefined
-  const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined
-
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-slate-900">
-        {label}
-      </label>
-
-      <div className="mt-2">
-        {children({
-          id,
-          className: error
-            ? `${controlClasses} border-red-400 focus:border-red-500 focus:outline-red-500`
-            : controlClasses,
-          'aria-invalid': error ? true : undefined,
-          'aria-describedby': describedBy,
-        })}
-      </div>
-
-      {error ? (
-        <p id={errorId} className="mt-2 text-sm font-medium text-red-700">
-          {error}
-        </p>
-      ) : null}
-
-      {hint ? (
-        <p id={hintId} className="mt-2 text-sm leading-relaxed text-slate-500">
-          {hint}
-        </p>
-      ) : null}
-    </div>
   )
 }

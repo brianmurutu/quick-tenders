@@ -17,14 +17,15 @@ export function LogoMark({
   /** `inverse` swaps badge and glyph for use on a dark background. */
   variant?: 'brand' | 'inverse'
 }) {
-  const badge = variant === 'inverse' ? '#ffffff' : '#0F3D2E'
-  const glyph = variant === 'inverse' ? '#0F3D2E' : '#ffffff'
-
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" className={className}>
-      <rect width="100" height="100" rx="22" fill={badge} />
-      <circle cx="48" cy="45" r="22" fill="none" stroke={glyph} strokeWidth="14" />
-      <path d="M64 61 78 75" stroke={glyph} strokeWidth="14" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+      className={`logo-mark ${variant === 'inverse' ? 'logo-mark-inverse' : ''} ${className}`}
+    >
+      <rect className="logo-mark-badge" width="100" height="100" rx="22" />
+      <circle cx="48" cy="45" r="22" fill="none" stroke="var(--logo-glyph)" strokeWidth="14" />
+      <path d="M64 61 78 75" stroke="var(--logo-glyph)" strokeWidth="14" strokeLinecap="round" />
     </svg>
   )
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 
+import { Button, Card, CheckboxChip, Input, Select } from '@/components/ui'
 import {
   EMPTY_SIGN_UP,
   MIN_PASSWORD_LENGTH,
@@ -183,108 +184,75 @@ export function SignupForm({ initialError }: { initialError?: string }) {
   const sectorsErrorId = `${formId}-sectors-error`
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="auth-form">
       {formError ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm leading-relaxed text-red-900"
-        >
+        <div role="alert" className="form-message form-message-error">
           {formError}
         </div>
       ) : null}
 
-      <Field
+      <Input
         id={`${formId}-full-name`}
         label="Your name"
+        type="text"
+        name="fullName"
+        autoComplete="name"
+        value={values.fullName}
+        onChange={(event) => update('fullName', event.target.value)}
         error={fieldErrors.fullName}
-      >
-        {(props) => (
-          <input
-            {...props}
-            type="text"
-            name="fullName"
-            autoComplete="name"
-            value={values.fullName}
-            onChange={(event) => update('fullName', event.target.value)}
-          />
-        )}
-      </Field>
+      />
 
-      <Field
+      <Input
         id={`${formId}-email`}
         label="Company email"
-        hint="Consumer email providers are not accepted, because the account is tied to your company domain."
+        helperText="Consumer email providers are not accepted, because the account is tied to your company domain."
+        type="email"
+        name="email"
+        autoComplete="email"
+        value={values.email}
+        onChange={(event) => update('email', event.target.value)}
         error={fieldErrors.email}
-      >
-        {(props) => (
-          <input
-            {...props}
-            type="email"
-            name="email"
-            autoComplete="email"
-            value={values.email}
-            onChange={(event) => update('email', event.target.value)}
-          />
-        )}
-      </Field>
+      />
 
-      <Field
+      <Input
         id={`${formId}-password`}
         label="Password"
-        hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+        helperText={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+        type="password"
+        name="password"
+        autoComplete="new-password"
+        value={values.password}
+        onChange={(event) => update('password', event.target.value)}
         error={fieldErrors.password}
-      >
-        {(props) => (
-          <input
-            {...props}
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            value={values.password}
-            onChange={(event) => update('password', event.target.value)}
-          />
-        )}
-      </Field>
+      />
 
-      <Field
+      <Input
         id={`${formId}-company-name`}
         label="Company name"
+        type="text"
+        name="companyName"
+        autoComplete="organization"
+        value={values.companyName}
+        onChange={(event) => update('companyName', event.target.value)}
         error={fieldErrors.companyName}
-      >
-        {(props) => (
-          <input
-            {...props}
-            type="text"
-            name="companyName"
-            autoComplete="organization"
-            value={values.companyName}
-            onChange={(event) => update('companyName', event.target.value)}
-          />
-        )}
-      </Field>
+      />
 
-      <Field
+      <Select
         id={`${formId}-industry`}
         label="Category your company falls under"
-        hint="This is the profile the agent scores every tender against, so it is worth getting right."
+        helperText="This is the profile the agent scores every tender against, so it is worth getting right."
+        name="industry"
+        value={values.industry}
+        onChange={(event) => update('industry', event.target.value)}
         error={fieldErrors.industry}
       >
-        {(props) => (
-          <select
-            {...props}
-            name="industry"
-            value={values.industry}
-            onChange={(event) => update('industry', event.target.value)}
-          >
-            <option value="">Select a category</option>
-            {INDUSTRIES.map((industry) => (
-              <option key={industry} value={industry}>
-                {industry}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+        <option value="">Select a category</option>
+        {INDUSTRIES.map((industry) => (
+          <option key={industry} value={industry}>
+            {industry}
+          </option>
+        ))}
+      </Select>
 
       <fieldset
         aria-describedby={`${
@@ -292,139 +260,71 @@ export function SignupForm({ initialError }: { initialError?: string }) {
         }${sectorsHintId}`}
         aria-invalid={fieldErrors.sectors_of_interest ? true : undefined}
       >
-        <legend className="text-sm font-semibold text-slate-900">
-          Sectors you want tenders for
-        </legend>
+        <legend className="ui-label">Sectors you want tenders for</legend>
 
         {fieldErrors.sectors_of_interest ? (
-          <p id={sectorsErrorId} className="mt-2 text-sm font-medium text-red-700">
+          <p id={sectorsErrorId} className="ui-error">
             {fieldErrors.sectors_of_interest}
           </p>
         ) : null}
 
-        <p id={sectorsHintId} className="mt-2 text-sm leading-relaxed text-slate-500">
+        <p id={sectorsHintId} className="ui-helper">
           Pick between 1 and {MAX_SECTORS}. Narrower profiles match better than
           broad ones. Selected {selectedSectors} of {MAX_SECTORS}.
         </p>
 
-        <div className="mt-4 grid max-h-64 gap-x-6 gap-y-3 overflow-y-auto rounded-md border border-slate-200 p-4 sm:grid-cols-2">
+        <div className="checkbox-chip-grid">
           {SECTORS.map((sector) => {
             const checked = values.sectors_of_interest.includes(sector)
             const atLimit = !checked && selectedSectors >= MAX_SECTORS
 
             return (
-              <label
+              <CheckboxChip
                 key={sector}
-                className={`flex items-start gap-3 text-sm ${
-                  atLimit
-                    ? 'cursor-not-allowed text-slate-400'
-                    : 'cursor-pointer text-slate-700'
-                }`}
+                name="sectors_of_interest"
+                value={sector}
+                checked={checked}
+                disabled={atLimit}
+                onChange={() => toggleSector(sector)}
               >
-                <input
-                  type="checkbox"
-                  name="sectors_of_interest"
-                  value={sector}
-                  checked={checked}
-                  disabled={atLimit}
-                  onChange={() => toggleSector(sector)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed"
-                />
-                <span>{sector}</span>
-              </label>
+                {sector}
+              </CheckboxChip>
             )
           })}
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-slate-500">
+        <p className="ui-helper">
           You will add your county and company size on the next screen, and you can
           change any of this later.
         </p>
       </fieldset>
 
-      <button
+      <Button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-md bg-blue-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="w-full"
       >
         {submitting ? 'Creating your account...' : 'Start the 3-day trial'}
-      </button>
+      </Button>
 
-      <p className="text-sm leading-relaxed text-slate-500">
+      <p className="auth-copy">
         By signing up you agree to the{' '}
         <Link
           href="/terms"
-          className="rounded-sm font-semibold text-slate-700 underline transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          className="form-link"
         >
           terms of service
         </Link>{' '}
         and the{' '}
         <Link
           href="/privacy"
-          className="rounded-sm font-semibold text-slate-700 underline transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          className="form-link"
         >
           privacy policy
         </Link>
         .
       </p>
     </form>
-  )
-}
-
-const controlClasses =
-  'w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-700 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-700'
-
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  children,
-}: {
-  id: string
-  label: string
-  hint?: string
-  error?: string
-  children: (props: {
-    id: string
-    className: string
-    'aria-invalid': boolean | undefined
-    'aria-describedby': string | undefined
-  }) => React.ReactNode
-}) {
-  const hintId = hint ? `${id}-hint` : undefined
-  const errorId = error ? `${id}-error` : undefined
-  const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined
-
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-slate-900">
-        {label}
-      </label>
-
-      <div className="mt-2">
-        {children({
-          id,
-          className: error
-            ? `${controlClasses} border-red-400 focus:border-red-500 focus:outline-red-500`
-            : controlClasses,
-          'aria-invalid': error ? true : undefined,
-          'aria-describedby': describedBy,
-        })}
-      </div>
-
-      {error ? (
-        <p id={errorId} className="mt-2 text-sm font-medium text-red-700">
-          {error}
-        </p>
-      ) : null}
-
-      {hint ? (
-        <p id={hintId} className="mt-2 text-sm leading-relaxed text-slate-500">
-          {hint}
-        </p>
-      ) : null}
-    </div>
   )
 }
 
@@ -436,11 +336,11 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-7">
+    <Card className="signup-response-panel">
       <h2 className="text-xl font-semibold tracking-tight text-slate-900">
         {title}
       </h2>
       <div className="mt-4 space-y-4 leading-relaxed text-slate-600">{children}</div>
-    </div>
+    </Card>
   )
 }

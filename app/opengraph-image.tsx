@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { socialPalette } from '@/lib/design-tokens'
 
 export const alt = 'Quick Tenders — an AI agent that finds your tenders and drafts the bids'
 export const size = { width: 1200, height: 630 }
@@ -29,7 +30,7 @@ export default function OpengraphImage() {
           justifyContent: 'space-between',
           width: '100%',
           height: '100%',
-          background: '#0f172a',
+          background: socialPalette.paper,
           padding: 80,
         }}
       >
@@ -41,7 +42,7 @@ export default function OpengraphImage() {
               width: 96,
               height: 96,
               borderRadius: 21,
-              background: '#1d4ed8',
+              background: socialPalette.forest,
             }}
           >
             <div
@@ -52,7 +53,7 @@ export default function OpengraphImage() {
                 width: 56,
                 height: 56,
                 borderRadius: 9999,
-                border: '13px solid #ffffff',
+                border: `13px solid ${socialPalette.card}`,
                 boxSizing: 'border-box',
               }}
             />
@@ -64,13 +65,13 @@ export default function OpengraphImage() {
                 width: 32,
                 height: 13,
                 borderRadius: 9999,
-                background: '#ffffff',
+                background: socialPalette.card,
                 transform: 'rotate(45deg)',
               }}
             />
           </div>
 
-          <div style={{ fontSize: 40, fontWeight: 600, color: '#ffffff' }}>
+          <div style={{ fontSize: 40, fontWeight: 600, color: socialPalette.ink }}>
             Quick Tenders
           </div>
         </div>
@@ -80,14 +81,14 @@ export default function OpengraphImage() {
             style={{
               fontSize: 74,
               fontWeight: 600,
-              color: '#ffffff',
+              color: socialPalette.ink,
               lineHeight: 1.1,
               letterSpacing: -2,
             }}
           >
             An AI agent that finds your tenders and drafts the bids
           </div>
-          <div style={{ marginTop: 28, fontSize: 30, color: '#94a3b8' }}>
+          <div style={{ marginTop: 28, fontSize: 30, color: socialPalette.muted }}>
             3-day free trial · One account per company
           </div>
         </div>

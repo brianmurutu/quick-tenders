@@ -9,6 +9,7 @@ import {
   type SignInFieldErrors,
   type SignInInput,
 } from '@/lib/signin'
+import { Button, Input } from '@/components/ui'
 
 import { signIn } from './actions'
 
@@ -77,11 +78,11 @@ export function LoginForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="auth-form">
       {initialMessage && !formError ? (
         <div
           role="status"
-          className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700"
+          className="form-message"
         >
           {initialMessage}
         </div>
@@ -90,104 +91,53 @@ export function LoginForm({
       {formError ? (
         <div
           role="alert"
-          className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm leading-relaxed text-red-900"
+          className="form-message form-message-error"
         >
           {formError}
         </div>
       ) : null}
 
-      <Field id={`${formId}-email`} label="Company email" error={fieldErrors.email}>
-        {(props) => (
-          <input
-            {...props}
-            type="email"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={values.email}
-            onChange={(event) => update('email', event.target.value)}
-          />
-        )}
-      </Field>
+      <Input
+        id={`${formId}-email`}
+        label="Company email"
+        error={fieldErrors.email}
+        type="email"
+        name="email"
+        autoComplete="email"
+        autoFocus
+        value={values.email}
+        onChange={(event) => update('email', event.target.value)}
+      />
 
-      <Field id={`${formId}-password`} label="Password" error={fieldErrors.password}>
-        {(props) => (
-          <input
-            {...props}
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            value={values.password}
-            onChange={(event) => update('password', event.target.value)}
-          />
-        )}
-      </Field>
+      <Input
+        id={`${formId}-password`}
+        label="Password"
+        error={fieldErrors.password}
+        type="password"
+        name="password"
+        autoComplete="current-password"
+        value={values.password}
+        onChange={(event) => update('password', event.target.value)}
+      />
 
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-blue-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="w-full"
       >
         {pending ? 'Signing you in...' : 'Sign in'}
-      </button>
+      </Button>
 
-      <p className="text-sm leading-relaxed text-slate-600">
+      <p className="auth-copy">
         No account for your company yet?{' '}
         <Link
           href="/signup"
-          className="rounded-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+          className="form-link"
         >
           Start a 3-day trial
         </Link>
         .
       </p>
     </form>
-  )
-}
-
-const controlClasses =
-  'w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors focus:border-blue-700 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-700'
-
-function Field({
-  id,
-  label,
-  error,
-  children,
-}: {
-  id: string
-  label: string
-  error?: string
-  children: (props: {
-    id: string
-    className: string
-    'aria-invalid': boolean | undefined
-    'aria-describedby': string | undefined
-  }) => React.ReactNode
-}) {
-  const errorId = error ? `${id}-error` : undefined
-
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-slate-900">
-        {label}
-      </label>
-
-      <div className="mt-2">
-        {children({
-          id,
-          className: error
-            ? `${controlClasses} border-red-400 focus:border-red-500 focus:outline-red-500`
-            : controlClasses,
-          'aria-invalid': error ? true : undefined,
-          'aria-describedby': errorId,
-        })}
-      </div>
-
-      {error ? (
-        <p id={errorId} className="mt-2 text-sm font-medium text-red-700">
-          {error}
-        </p>
-      ) : null}
-    </div>
   )
 }

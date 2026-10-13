@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quick Tenders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--forest:#0F3D2E;--ink:#15221B;--paper:#E8ECE5;--card:#fff;--stamp:#C8321F;--ochre:#E9B23C;--line:#C3CCC0;--muted:#4A5A50;--brand:#0F3D2E;--on-brand:#fff;
+--display:"Bricolage Grotesque","Arial Narrow",Arial,sans-serif;--body:"Public Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0E1713;--card:#16231C;--ink:#E6EDE7;--line:#2A3A31;--muted:#9DB0A5;--stamp:#F0634F;--brand:#2F8F6A;--forest:#1E6B4F}}
+:root[data-theme="dark"]{--paper:#0E1713;--card:#16231C;--ink:#E6EDE7;--line:#2A3A31;--muted:#9DB0A5;--stamp:#F0634F;--brand:#2F8F6A;--forest:#1E6B4F}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(72px + env(safe-area-inset-top,0px))}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 1.0625rem/1.6 var(--body)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--ochre);outline-offset:3px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.025em}
+h2{font-size:clamp(1.9rem,4vw,2.9rem);line-height:1.05;font-weight:800}
+h3{font-size:1.25rem;line-height:1.2;font-weight:600}
+p{margin:0}
+.btn{display:inline-block;padding:14px 22px;border-radius:6px;font:600 1rem var(--body);text-decoration:none;border:2px solid var(--brand);background:var(--brand);color:var(--on-brand)}
+.btn:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper)}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--paper);border-bottom:1.5px solid var(--ink)}
+.nav{display:flex;align-items:center;gap:28px;height:68px}
+.logo{font:800 1.3rem var(--display);letter-spacing:-.03em;text-decoration:none;display:flex;align-items:center;gap:10px}
+.mark{width:24px;height:24px;background:var(--forest);border-radius:4px;position:relative}
+.mark::after{content:"";position:absolute;right:-4px;bottom:-4px;width:10px;height:10px;background:var(--stamp);border-radius:50%}
+.nav nav{display:flex;gap:24px;margin-left:auto}
+.nav nav a{text-decoration:none;font-weight:500}
+.nav nav a:hover{text-decoration:underline;text-underline-offset:4px}
+.nav .signin{font-weight:500}
+.nav .btn{padding:10px 18px}
+
+.hero{padding:72px 0 88px}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center}
+h1{font-size:clamp(2.7rem,6.4vw,5rem);line-height:.98;font-weight:800;letter-spacing:-.04em}
+h1 span{display:block}
+.lede{margin-top:28px;max-width:34em;font-size:1.2rem;color:var(--muted)}
+.cta{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap}
+.assure{margin:26px 0 0;padding:0;list-style:none;display:flex;gap:22px;flex-wrap:wrap;font-weight:500;font-size:.95rem}
+.assure li::before{content:"";display:inline-block;width:9px;height:9px;margin-right:8px;background:var(--forest);border-radius:50%}
+
+.doc{position:relative;background:var(--card);border:2px solid var(--ink);border-radius:4px;box-shadow:12px 12px 0 var(--ochre);padding:26px 26px 22px}
+.doc-top{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;font-weight:600;padding-bottom:14px;border-bottom:1.5px solid var(--ink)}
+.doc-top b{color:var(--stamp);font-weight:600}
+.doc h3{margin-top:18px;font-size:1.55rem;font-weight:800}
+.ref{color:var(--muted);font-size:.92rem;margin-top:4px}
+dl{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin:20px 0}
+dt{font-size:.85rem;color:var(--muted)}
+dd{margin:0;font-weight:600}
+.fit{display:flex;align-items:center;gap:14px;font-weight:600}
+.bar{flex:1;height:10px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:96%;background:var(--forest)}
+.pack{margin:20px 0 0;padding:16px 0 0;border-top:1.5px dashed var(--ink);list-style:none}
+.pack p{font-weight:600;margin-bottom:8px}
+.pack li{position:relative;padding:5px 0 5px 28px;font-size:.95rem}
+.pack li::before{content:"";position:absolute;left:4px;top:11px;width:12px;height:7px;border-left:2.5px solid var(--forest);border-bottom:2.5px solid var(--forest);transform:rotate(-45deg)}
+.more{margin-top:16px;padding-top:12px;border-top:1.5px solid var(--line);font-size:.9rem;color:var(--muted);display:grid;gap:4px}
+.more div{display:flex;justify-content:space-between;gap:10px}
+.stamp{position:absolute;right:-18px;top:132px;border:3px solid var(--stamp);outline:1.5px solid var(--stamp);outline-offset:3px;color:var(--stamp);font:800 1.5rem/1 var(--display);padding:10px 14px;border-radius:4px;background:color-mix(in srgb,var(--card) 82%,transparent);transform:rotate(-9deg);opacity:.95;animation:thud .45s .5s cubic-bezier(.2,.8,.3,1) both}
+@keyframes thud{0%{opacity:0;transform:rotate(-9deg) scale(1.8)}60%{opacity:1;transform:rotate(-9deg) scale(.95)}100%{opacity:.95;transform:rotate(-9deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.stamp{animation:none}html{scroll-behavior:auto}}
+
+.feeds{border-block:1.5px solid var(--ink);background:var(--forest);color:#fff}
+.feeds .wrap{display:flex;gap:10px 30px;flex-wrap:wrap;align-items:baseline;padding-block:18px;font-weight:500}
+.feeds strong{font:800 1.05rem var(--display)}
+
+section.block{padding:96px 0}
+.split{display:grid;grid-template-columns:.8fr 1.2fr;gap:64px}
+.split>div:first-child p{margin-top:18px;color:var(--muted);max-width:26em}
+.steps{list-style:none;margin:0;padding:0;position:relative}
+.steps::before{content:"";position:absolute;left:21px;top:22px;bottom:22px;width:2px;background:var(--ink)}
+.steps li{position:relative;padding:0 0 38px 70px}
+.steps li:last-child{padding-bottom:0}
+.steps .n{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:var(--card);border:2px solid var(--ink);display:grid;place-items:center;font:800 1.1rem var(--display)}
+.steps li:last-child .n{background:var(--stamp);border-color:var(--stamp);color:#fff}
+.steps p{margin-top:6px;color:var(--muted);max-width:36em}
+
+.why{background:var(--card);border-block:1.5px solid var(--ink)}
+.rows{margin-top:44px;border-top:2px solid var(--ink)}
+.row{display:grid;grid-template-columns:.8fr 1.2fr;gap:64px;padding:30px 0;border-bottom:1.5px solid var(--line)}
+.row p{color:var(--muted);max-width:38em}
+
+.plans{margin-top:44px;display:grid;grid-template-columns:1fr 1.15fr;gap:28px;align-items:stretch}
+.plan{padding:34px;border:2px solid var(--ink);border-radius:4px;background:var(--card);display:flex;flex-direction:column}
+.plan.pro{background:var(--forest);color:#fff;border-color:var(--forest);box-shadow:10px 10px 0 var(--ochre)}
+.price{margin:14px 0 6px;font:800 3rem/1 var(--display);letter-spacing:-.04em}
+.price small{font:500 1rem var(--body);letter-spacing:0;opacity:.8}
+.plan>p{opacity:.85}
+.plan ul{list-style:none;margin:22px 0 28px;padding:0;display:grid;gap:10px}
+.plan li{position:relative;padding-left:26px;font-size:.98rem}
+.plan li::before{content:"";position:absolute;left:3px;top:.55em;width:11px;height:6px;border-left:2.5px solid currentColor;border-bottom:2.5px solid currentColor;transform:rotate(-45deg)}
+.plan .btn{margin-top:auto;text-align:center}
+.plan.pro .btn{background:var(--ochre);border-color:var(--ochre);color:#15221B}
+.plan.pro .btn:hover{background:#fff;border-color:#fff}
+.pay{margin-top:22px;font-size:.95rem;color:var(--muted)}
+
+footer{background:var(--ink);color:var(--paper);padding:64px 0 40px}
+:root:not([data-theme="light"]) footer{--x:1}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+footer h3{font-size:1rem;margin-bottom:12px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+footer a{text-decoration:none;opacity:.85}
+footer a:hover{opacity:1;text-decoration:underline}
+footer p{opacity:.8;max-width:26em;font-size:.95rem}
+.legal{margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.2);font-size:.88rem;opacity:.75}
+
+.menu{display:none;position:relative}
+.menu summary{list-style:none;cursor:pointer;font-weight:600;padding:10px 4px}
+.menu summary::-webkit-details-marker{display:none}
+.menu .list{position:absolute;right:0;top:52px;width:220px;background:var(--card);border:2px solid var(--ink);border-radius:4px;padding:8px;display:grid;box-shadow:6px 6px 0 var(--ochre)}
+.menu .list a{padding:12px;text-decoration:none;font-weight:500}
+@media (max-width:900px){.menu{display:block}
+.hero{padding:44px 0 64px}.hero .wrap,.split,.row,.plans{grid-template-columns:1fr;gap:36px}
+.row{gap:10px}.foot{grid-template-columns:1fr 1fr}.nav nav,.nav .signin{display:none}.nav .btn{margin-left:auto}
+.stamp{right:-6px;top:150px;font-size:1.2rem}.doc{box-shadow:8px 8px 0 var(--ochre)}
+section.block{padding:64px 0}}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap nav">
+  <a class="logo" href="#top"><span class="mark" aria-hidden="true"></span>Quick Tenders</a>
+  <nav aria-label="Main"><a href="#how-it-works">How it works</a><a href="#why">Why Quick Tenders</a><a href="#pricing">Pricing</a></nav>
+  <a class="signin" href="/login">Sign in</a>
+  <a class="btn" href="/signup">Get Demo</a>
+  <details class="menu"><summary>Menu</summary><div class="list"><a href="#how-it-works">How it works</a><a href="#why">Why Quick Tenders</a><a href="#pricing">Pricing</a><a href="/login">Sign in</a></div></details>
+ </div>
+</header>
+
+<main id="top">
+<section class="hero">
+ <div class="wrap">
+  <div>
+   <h1><span>Tenders found.</span><span>Bids drafted.</span><span>You sign.</span></h1>
+   <p class="lede">Quick Tenders watches PPIP, all 47 counties and the parastatals every day. It matches each tender to your company, then writes the full PPADA bid pack in Word.</p>
+   <div class="cta">
+    <a class="btn" href="/signup">Get Demo, 3 days free</a>
+    <a class="btn ghost" href="#how-it-works">See how it works</a>
+   </div>
+   <ul class="assure"><li>KES 0 for 3 days</li><li>One company per domain</li><li>Pay with M-Pesa or card</li></ul>
+  </div>
+
+  <article class="doc" aria-label="Example matched tender">
+   <div class="doc-top"><span>Tender notice, matched today</span><b>Closes in 11 days</b></div>
+   <h3>Road Maintenance &amp; Safety Upgrades</h3>
+   <p class="ref">KeNHA/2756/2026, Kenya National Highways Authority</p>
+   <dl>
+    <div><dt>Region</dt><dd>Nairobi &amp; Central</dd></div>
+    <div><dt>Estimated value</dt><dd>KES 48.5M</dd></div>
+    <div><dt>Category</dt><dd>NCA 1–4 Civil</dd></div>
+    <div><dt>Fit to your profile</dt><dd class="fit"><span>96%</span><span class="bar"><i></i></span></dd></div>
+   </dl>
+   <div class="pack">
+    <p>Drafted for you, ready in Word</p>
+    <ul style="list-style:none;margin:0;padding:0">
+     <li>Form of Tender and Technical Proposal (T-1 to T-5)</li>
+     <li>Priced Bill of Quantities and work methodology</li>
+     <li>KRA compliance, CR12 and NCA verification dossier</li>
+     <li>Tender Securing Declaration and anti-corruption form</li>
+    </ul>
+   </div>
+   <div class="more">
+    <div><span>Community Solar Borehole Drilling, Kitui</span><b>92%</b></div>
+    <div><span>Smart Grid Metering Supply, KPLC</span><b>89%</b></div>
+   </div>
+   <div class="stamp" aria-hidden="true">Ready to sign</div>
+  </article>
+ </div>
+</section>
+
+<div class="feeds">
+ <div class="wrap"><strong>Watching every day:</strong><span>PPIP</span><span>KeNHA</span><span>Kenya Power</span><span>Kenya Ports Authority</span><span>KEMSA</span><span>and 42 more counties and parastatals</span></div>
+</div>
+
+<section class="block" id="how-it-works">
+ <div class="wrap split">
+  <div>
+   <h2>From sign-up to submitted bid in four steps.</h2>
+   <p>You set up once. The agent does the searching and the paperwork. You do the part that needs a signature.</p>
+  </div>
+  <ol class="steps">
+   <li><span class="n">1</span><h3>Register your business</h3><p>Sign up with your work email. Add your KRA PIN, AGPO category and company profile one time.</p></li>
+   <li><span class="n">2</span><h3>Pick your categories</h3><p>Choose your sectors, such as NCA construction, ICT, healthcare, security or supply, and the counties you want to bid in.</p></li>
+   <li><span class="n">3</span><h3>The agent scans and drafts</h3><p>It checks national and county portals all day, scores your chance of winning, and drafts a complete response pack in Word.</p></li>
+   <li><span class="n">4</span><h3>Proofread, sign, submit</h3><p>Read the proposal and pricing schedule. Add your signatures. Submit before the deadline.</p></li>
+  </ol>
+ </div>
+</section>
+
+<section class="block why" id="why">
+ <div class="wrap">
+  <h2>Most tenders are missed, not lost.</h2>
+  <div class="rows">
+   <div class="row"><h3>You see every tender in time</h3><p>Tenders on PPIP and county portals close fast. The agent tracks each deadline and alerts you the moment a good match appears.</p></div>
+   <div class="row"><h3>Bids are drafted in minutes</h3><p>Get the Form of Tender, Technical Proposal, compliance matrix and cover letter as one Word pack, built to PPADA requirements.</p></div>
+   <div class="row"><h3>One person can cover the pipeline</h3><p>A director or a single business development rep can review and submit ten or more tenders a week. No procurement agency needed.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="block" id="pricing">
+ <div class="wrap">
+  <h2>Start free for 3 days. Pay when you win.</h2>
+  <div class="plans">
+   <div class="plan">
+    <h3>Free trial</h3>
+    <div class="price">KES 0<small> / 3 days</small></div>
+    <p>Full access from the first minute. No payment details.</p>
+    <ul><li>Tender discovery and scoring across PPIP</li><li>Word proposal drafts</li><li>Email alerts for strong matches</li><li>One company account, locked to your email domain</li></ul>
+    <a class="btn ghost" href="/signup">Get Demo</a>
+   </div>
+   <div class="plan pro">
+    <h3>Pro</h3>
+    <div class="price">KES 2,000<small> / month</small></div>
+    <p>Continuous tender tracking and unlimited bid drafts.</p>
+    <ul><li>Monitoring of PPIP, 47 counties and parastatals</li><li>Fit scoring built on your profile and AGPO status</li><li>Complete Word packs, ready to sign and submit</li><li>Email and SMS alerts for priority tenders</li><li>Unlimited tracking, pipeline and archived bids</li><li>Billing by Lipa na M-Pesa or card. Cancel anytime.</li></ul>
+    <a class="btn" href="/signup?plan=pro">Get started</a>
+   </div>
+  </div>
+  <p class="pay">Secure checkout with Paystack. You get an official KRA-compliant receipt.</p>
+ </div>
+</section>
+</main>
+
+<footer>
+ <div class="wrap">
+  <div class="foot">
+   <div><h3>Quick Tenders</h3><p>Kenya's AI agent for finding tenders and drafting bids. Built for local suppliers and contractors.</p></div>
+   <div><h3>Product</h3><ul><li><a href="#how-it-works">How it works</a></li><li><a href="#why">Why Quick Tenders</a></li><li><a href="#pricing">Pricing</a></li><li><a href="/signup">Get Demo</a></li></ul></div>
+   <div><h3>Company</h3><ul><li><a href="/about">About</a></li><li><a href="/contact">Contact</a></li><li><a href="/careers">Careers</a></li></ul></div>
+   <div><h3>Legal</h3><ul><li><a href="/privacy">Privacy</a></li><li><a href="/terms">Terms</a></li><li><a href="/security">Security</a></li></ul></div>
+  </div>
+  <p class="legal">© 2026 Quick Tenders Kenya. Drafts are a starting point. Check every bid against PPADA requirements before you submit.</p>
+ </div>
+</footer>
+</body>
+</html>

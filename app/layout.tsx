@@ -7,13 +7,14 @@ import './globals.css'
 const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
   variable: '--font-bricolage',
-  weight: ['800'],
+  weight: ['600', '800'],
   display: 'swap',
 })
 
 const publicSans = Public_Sans({
   subsets: ['latin'],
   variable: '--font-public-sans',
+  weight: ['400', '500', '600'],
   display: 'swap',
 })
 
@@ -52,6 +53,7 @@ export const metadata: Metadata = {
 
 export const viewport = {
   themeColor: '#0F3D2E',
+  viewportFit: 'cover' as const,
 }
 
 export default function RootLayout({

@@ -259,7 +259,7 @@ function Pricing() {
               {proFeatures.map((feature) => <li key={feature}>{feature}</li>)}
             </ul>
             <Link className="button button-light" href="/signup">
-              Get Demo
+              Get started
             </Link>
           </article>
         </div>

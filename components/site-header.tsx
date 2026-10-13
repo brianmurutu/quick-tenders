@@ -22,10 +22,10 @@ export function SiteHeader() {
           className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
           aria-label="Quick Tenders home"
         >
-          <Logo variant="inverse" />
+          <Logo />
         </Link>
 
-        <nav aria-label="Main">
+        <nav className="site-desktop-nav" aria-label="Main">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -44,6 +44,16 @@ export function SiteHeader() {
           >
             Sign in
           </Link>
+
+          <details className="site-menu">
+            <summary aria-label="Open navigation menu">Menu</summary>
+            <div className="site-menu-panel">
+              {navLinks.map((link) => (
+                <Link key={link.href} href={link.href}>{link.label}</Link>
+              ))}
+              <Link href="/login">Sign in</Link>
+            </div>
+          </details>
 
           <Link
             href="/signup"
