@@ -13,7 +13,7 @@
  */
 
 /** Width and gutters for a full-width band's content. */
-export const container = 'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8'
+export const container = 'mx-auto max-w-6xl px-6 lg:px-8'
 
 /** Vertical padding for a full-width band - tightened for sleek density. */
 export const sectionY = 'py-10 sm:py-12 lg:py-16'

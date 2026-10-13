@@ -62,10 +62,23 @@ export function SiteFooter() {
         </div>
 
         <div className="footer-bottom">
-          <p>
-            &copy; <CopyrightYear initialYear={new Date().getFullYear()} /> Quick
-            Tenders Kenya. All rights reserved.
-          </p>
+          <div className="footer-credits">
+            <p>
+              &copy; <CopyrightYear initialYear={new Date().getFullYear()} /> Quick
+              Tenders Kenya. All rights reserved.
+            </p>
+            <p>
+              A project by{' '}
+              <a
+                href="https://starlettechnogies.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Starlet Technologies
+              </a>
+              .
+            </p>
+          </div>
           <p>
             Drafts are for review and are not legal or procurement advice.
             Check each tender against its requirements and applicable PPADA

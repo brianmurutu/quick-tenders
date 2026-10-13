@@ -49,14 +49,20 @@ const reasons = [
 
 const trialFeatures = [
   'Tender matches for your business',
+  'Daily checks across public tender sources',
+  'Opportunity fit scores and closing dates',
   'Draft bid documents in Word',
+  'Company profile matching',
   'Three days to review the service',
 ]
 
 const proFeatures = [
   'Ongoing tender monitoring',
   'Opportunity fit scores and deadlines',
-  'Draft packs for your team to review',
+  'Coverage across counties and public agencies',
+  'Draft packs in Word for your team to review',
+  'Forms, schedules, and supporting documents',
+  'Your representative reviews and signs',
 ]
 
 export default function Home() {
@@ -81,7 +87,7 @@ export default function Home() {
 function Hero() {
   return (
     <section className="hero-section">
-      <div className={`${container} hero-layout`}>
+      <div className="hero-wrap hero-layout">
         <div className="hero-copy">
           <h1>
             Tenders found.
@@ -95,9 +101,19 @@ function Hero() {
             pack. Your representative reviews it, makes the final call, and
             signs.
           </p>
-          <Link className="button button-primary" href="/signup">
-            Get Demo
-          </Link>
+          <div className="hero-actions">
+            <Link className="button button-primary" href="/signup">
+              Get Demo
+            </Link>
+            <Link className="button button-ghost" href="#how-it-works">
+              See how it works
+            </Link>
+          </div>
+          <ul className="hero-assurances" aria-label="Service details">
+            <li>KES 0 for 3 days</li>
+            <li>One company per domain</li>
+            <li>Pay with M-Pesa or card</li>
+          </ul>
         </div>
         <TenderNotice />
       </div>
@@ -107,7 +123,7 @@ function Hero() {
 
 function TenderNotice() {
   return (
-    <article className="tender-paper" aria-label="Example tender and drafted bid pack">
+    <article className="tender-paper" aria-label="Example matched tender">
       <div className="paper-topline">
         <span>Invitation to tender</span>
         <span className="paper-reference">Public notice</span>
@@ -124,7 +140,10 @@ function TenderNotice() {
           </div>
           <div>
             <dt>Match to your business</dt>
-            <dd>96% fit</dd>
+            <dd className="notice-fit">
+              <span>96% fit</span>
+              <span className="fit-bar" aria-hidden="true"><i /></span>
+            </dd>
           </div>
           <div>
             <dt>Closing date</dt>
@@ -148,7 +167,7 @@ function TenderNotice() {
           </ul>
         </div>
       </div>
-      <div className="ready-stamp" aria-label="Ready to sign">
+      <div className="ready-stamp" aria-hidden="true">
         Ready to sign
       </div>
     </article>
@@ -178,23 +197,129 @@ function HowItWorks() {
       aria-labelledby="steps-heading"
     >
       <div className={container}>
-        <div className="section-intro">
-          <h2 id="steps-heading">How it works</h2>
-          <p>Three steps. One person reviews and signs.</p>
+        <div className="steps-layout">
+          <div className="steps-content">
+            <div className="section-intro">
+              <h2 id="steps-heading">How it works</h2>
+              <p>Three steps. One person reviews and signs.</p>
+            </div>
+            <ol className="steps-list">
+              {steps.map((step, index) => (
+                <li key={step.title}>
+                  <span className="step-number">{index + 1}</span>
+                  <div>
+                    <h3>{step.title}</h3>
+                    <p>{step.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <WorkflowIllustration />
         </div>
-        <ol className="steps-list">
-          {steps.map((step, index) => (
-            <li key={step.title}>
-              <span className="step-number">{index + 1}</span>
-              <div>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
-              </div>
+      </div>
+    </section>
+  )
+}
+
+function WorkflowIllustration() {
+  const stages = [
+    {
+      id: 'sources',
+      label: 'Discover',
+      title: 'Tender opportunities',
+      detail: 'Public sources across Kenya',
+      column: 'one',
+      row: 'one',
+    },
+    {
+      id: 'match',
+      label: 'Match',
+      title: 'Check your fit',
+      detail: 'Your categories and location',
+      column: 'two',
+      row: 'one',
+    },
+    {
+      id: 'decision',
+      label: 'Decide',
+      title: 'Relevant tender?',
+      detail: 'Based on your business',
+      column: 'three',
+      row: 'one',
+    },
+    {
+      id: 'draft',
+      label: 'Prepare',
+      title: 'Draft bid pack',
+      detail: 'Documents ready to review',
+      column: 'two',
+      row: 'two',
+    },
+    {
+      id: 'monitor',
+      label: 'Continue',
+      title: 'Keep looking',
+      detail: 'More tenders may match',
+      column: 'three',
+      row: 'two',
+    },
+    {
+      id: 'review',
+      label: 'Your turn',
+      title: 'Review and sign',
+      detail: 'You make the final call',
+      column: 'two',
+      row: 'three',
+    },
+  ]
+
+  return (
+    <figure className="workflow-illustration">
+      <figcaption>
+        <span>From opportunity to signature</span>
+        <span className="workflow-caption-note">Illustrative process</span>
+      </figcaption>
+      <div
+        className="workflow-canvas"
+        role="img"
+        aria-label="Illustration showing public tender opportunities matched to a business, relevant tenders leading to a draft bid pack for review and signature, and other opportunities continuing to be monitored."
+      >
+        <svg className="workflow-grid" viewBox="0 0 600 400" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <pattern id="workflow-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="1" fill="var(--on-brand)" fillOpacity=".14" />
+            </pattern>
+          </defs>
+          <rect width="600" height="400" fill="url(#workflow-dots)" />
+        </svg>
+        <svg className="workflow-connections" viewBox="0 0 600 400" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M190 60 H205 M395 60 H410" />
+          <path d="M505 120 C505 130 300 130 300 140" />
+          <path d="M505 120 V140" />
+          <path d="M300 260 V280" />
+          <circle cx="190" cy="60" r="4" />
+          <circle cx="205" cy="60" r="4" />
+          <circle cx="395" cy="60" r="4" />
+          <circle cx="410" cy="60" r="4" />
+          <circle cx="300" cy="140" r="4" />
+          <circle cx="505" cy="140" r="4" />
+          <circle cx="300" cy="280" r="4" />
+        </svg>
+        <ol className="workflow-nodes">
+          {stages.map((stage) => (
+            <li
+              className={`workflow-node workflow-node-${stage.id} workflow-column-${stage.column} workflow-row-${stage.row}`}
+              key={stage.id}
+            >
+              <span className="workflow-node-label">{stage.label}</span>
+              <strong>{stage.title}</strong>
+              <span className="workflow-node-detail">{stage.detail}</span>
             </li>
           ))}
         </ol>
       </div>
-    </section>
+    </figure>
   )
 }
 
@@ -258,7 +383,7 @@ function Pricing() {
             <ul>
               {proFeatures.map((feature) => <li key={feature}>{feature}</li>)}
             </ul>
-            <Link className="button button-light" href="/signup">
+            <Link className="button button-light" href="/signup?plan=pro">
               Get started
             </Link>
           </article>
