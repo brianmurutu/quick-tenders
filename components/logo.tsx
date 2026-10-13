@@ -1,5 +1,5 @@
 /**
- * The Quick Tenders mark: a geometric "Q" in a blue badge, its tail extended
+ * The Quick Tenders mark: a geometric "Q" in a forest badge, its tail extended
  * into a forward stroke.
  *
  * The geometry is duplicated in app/icon.svg and scripts/generate-icons.mjs
@@ -17,8 +17,8 @@ export function LogoMark({
   /** `inverse` swaps badge and glyph for use on a dark background. */
   variant?: 'brand' | 'inverse'
 }) {
-  const badge = variant === 'inverse' ? '#ffffff' : '#1d4ed8'
-  const glyph = variant === 'inverse' ? '#1d4ed8' : '#ffffff'
+  const badge = variant === 'inverse' ? '#ffffff' : '#0F3D2E'
+  const glyph = variant === 'inverse' ? '#0F3D2E' : '#ffffff'
 
   return (
     <svg viewBox="0 0 100 100" aria-hidden="true" className={className}>
@@ -44,7 +44,7 @@ export function Logo({
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark className="h-7 w-7 shrink-0" variant={variant} />
-      <span className="text-base font-semibold tracking-tight">Quick Tenders</span>
+      <span className="brand-name text-base font-semibold">Quick Tenders</span>
     </span>
   )
 }

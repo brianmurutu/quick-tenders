@@ -1,7 +1,21 @@
 import type { Metadata } from 'next'
+import { Bricolage_Grotesque, Public_Sans } from 'next/font/google'
 
 import { getSiteUrl } from '@/lib/env'
 import './globals.css'
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-bricolage',
+  weight: ['800'],
+  display: 'swap',
+})
+
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  variable: '--font-public-sans',
+  display: 'swap',
+})
 
 const description =
   'An AI agent that finds matching tenders and drafts the bids, so one representative can cover the whole pipeline.'
@@ -37,7 +51,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport = {
-  themeColor: '#1d4ed8',
+  themeColor: '#0F3D2E',
 }
 
 export default function RootLayout({
@@ -47,7 +61,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className={`${bricolage.variable} ${publicSans.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   )
 }
