@@ -1425,7 +1425,7 @@ textarea {
 .site-footer {
   padding: 4rem 0 max(2.5rem, env(safe-area-inset-bottom, 0px));
   border-top: 1.5px solid var(--ink);
-  background: var(--paper);
+  background: var(--card);
   color: var(--ink);
 }
 

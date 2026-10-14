@@ -27,8 +27,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 // -- Brand ------------------------------------------------------------------
 
-/** Tailwind blue-700, the primary already used across the site. */
-const BLUE = [0x1d, 0x4e, 0xd8]
+/** Forest brand green. Keep in sync with the global --forest token. */
+const FOREST = [0x0f, 0x3d, 0x2e]
 const WHITE = [0xff, 0xff, 0xff]
 
 /**
@@ -117,7 +117,7 @@ export function render(size, { rounded, scale }) {
           const y = (py + (sy + 0.5) / SAMPLES) / size
           if (!insideBadge(x, y, radius)) continue
 
-          const colour = insideGlyph(x, y, scale) ? WHITE : BLUE
+          const colour = insideGlyph(x, y, scale) ? WHITE : FOREST
           r += colour[0]
           g += colour[1]
           b += colour[2]
