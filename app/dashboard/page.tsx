@@ -91,7 +91,7 @@ export default async function DashboardPage({
   const trial = company ? trialState(company) : null
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="user-dashboard">
       <AppHeader right={company?.name ?? undefined} />
 
       <main className="mx-auto max-w-5xl px-6 py-12 lg:px-8">

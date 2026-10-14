@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendAdminEmail, buildAdminAnnouncementEmail } from '@/lib/email/admin-custom'
+import { normaliseKenyanPhone, sendSms } from '@/lib/sms/textsms'
+import type { Database } from '@/types/database'
 
 // ---------------------------------------------------------------------------
 // Guard helper
@@ -36,6 +38,54 @@ async function assertAdmin() {
   return { supabase, user }
 }
 
+type AdminClient = ReturnType<typeof createClient>
+type CommunicationRecipient = Pick<
+  Database['public']['Tables']['representatives']['Row'],
+  'id' | 'company_id' | 'full_name' | 'email' | 'phone_number'
+>
+
+async function resolveRecipients(
+  supabase: AdminClient,
+  recipientType: string,
+  formData: FormData,
+): Promise<
+  | { ok: true; recipients: CommunicationRecipient[] }
+  | { ok: false; message: string }
+> {
+  let query = supabase
+    .from('representatives')
+    .select('id, company_id, full_name, email, phone_number')
+    .order('created_at')
+
+  if (recipientType === 'company') {
+    const companyId = String(formData.get('companyId') ?? '').trim()
+    if (!companyId) return { ok: false, message: 'Choose a company' }
+    query = query.eq('company_id', companyId)
+  } else if (recipientType === 'selected') {
+    const representativeIds = Array.from(
+      new Set(
+        formData
+          .getAll('representativeIds')
+          .map(String)
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    )
+    if (representativeIds.length === 0) {
+      return { ok: false, message: 'Choose at least one representative' }
+    }
+    query = query.in('id', representativeIds)
+  } else if (recipientType !== 'all') {
+    return { ok: false, message: 'Choose a valid recipient group' }
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  if (!data?.length) return { ok: false, message: 'No recipients found' }
+
+  return { ok: true, recipients: data }
+}
+
 // ---------------------------------------------------------------------------
 // Send custom email to representatives
 // ---------------------------------------------------------------------------
@@ -53,8 +103,8 @@ export type SendCustomEmailState = {
  * - subject: email subject
  * - body: email body (plain text, will be converted to HTML)
  * - recipientType: 'all' | 'company' | 'selected'
- * - companyId: when recipientType is 'company'
- * - representativeIds: when recipientType is 'selected' (comma-separated string)
+ * - companyId: selected company UUID when recipientType is 'company'
+ * - representativeIds: repeated checkbox values when recipientType is 'selected'
  */
 export async function sendCustomEmailAction(
   _prevState: SendCustomEmailState | undefined,
@@ -63,8 +113,6 @@ export async function sendCustomEmailAction(
   const subject = String(formData.get('subject') ?? '').trim()
   const body = String(formData.get('body') ?? '').trim()
   const recipientType = String(formData.get('recipientType') ?? 'all')
-  const companyId = String(formData.get('companyId') ?? '')
-  const representativeIdsStr = String(formData.get('representativeIds') ?? '')
 
   // Basic validation
   if (!subject) {
@@ -77,59 +125,9 @@ export async function sendCustomEmailAction(
   try {
     const { supabase } = await assertAdmin()
 
-    let recipientEmails: string[] = []
-
-    // Get recipients based on type
-    if (recipientType === 'all') {
-      // Get all representatives
-      const { data, error } = await supabase
-        .from('representatives')
-        .select('email')
-        .order('created_at')
-
-      if (error) throw error
-      recipientEmails = data.map((rep) => rep.email).filter(Boolean)
-    } else if (recipientType === 'company') {
-      if (!companyId) {
-        return { ok: false, message: 'Company ID is required' }
-      }
-      // Get representatives for specific company
-      const { data, error } = await supabase
-        .from('representatives')
-        .select('email')
-        .eq('company_id', companyId)
-        .order('created_at')
-
-      if (error) throw error
-      recipientEmails = data.map((rep) => rep.email).filter(Boolean)
-    } else if (recipientType === 'selected') {
-      if (!representativeIdsStr) {
-        return { ok: false, message: 'No representatives selected' }
-      }
-      // Get representatives by IDs
-      const ids = representativeIdsStr
-        .split(',')
-        .map((id) => id.trim())
-        .filter((id) => id.length > 0)
-
-      if (ids.length === 0) {
-        return { ok: false, message: 'No valid representative IDs provided' }
-      }
-
-      const { data, error } = await supabase
-        .from('representatives')
-        .select('email')
-        .in('id', ids)
-
-      if (error) throw error
-      recipientEmails = data.map((rep) => rep.email).filter(Boolean)
-    } else {
-      return { ok: false, message: 'Invalid recipient type' }
-    }
-
-    if (recipientEmails.length === 0) {
-      return { ok: false, message: 'No recipients found' }
-    }
+    const target = await resolveRecipients(supabase, recipientType, formData)
+    if (!target.ok) return target
+    const recipientEmails = target.recipients.map((rep) => rep.email)
 
     // Build email content
     const { html, text } = buildAdminEmailContent(subject, body)
@@ -176,8 +174,8 @@ export type SendUpdateState = {
  * - title: update title
  * - content: update content (plain text)
  * - recipientType: 'all' | 'company' | 'selected'
- * - companyId: when recipientType is 'company'
- * - representativeIds: when recipientType is 'selected' (comma-separated string)
+ * - companyId: selected company UUID when recipientType is 'company'
+ * - representativeIds: repeated checkbox values when recipientType is 'selected'
  * - isImportant: whether to mark as important (optional)
  */
 export async function sendUpdateAction(
@@ -187,8 +185,6 @@ export async function sendUpdateAction(
   const title = String(formData.get('title') ?? '').trim()
   const content = String(formData.get('content') ?? '').trim()
   const recipientType = String(formData.get('recipientType') ?? 'all')
-  const companyId = String(formData.get('companyId') ?? '')
-  const representativeIdsStr = String(formData.get('representativeIds') ?? '')
   const isImportant = formData.get('isImportant') === 'on'
 
   // Basic validation
@@ -202,59 +198,9 @@ export async function sendUpdateAction(
   try {
     const { supabase } = await assertAdmin()
 
-    let recipientEmails: string[] = []
-
-    // Get recipients based on type (same logic as sendCustomEmailAction)
-    if (recipientType === 'all') {
-      // Get all representatives
-      const { data, error } = await supabase
-        .from('representatives')
-        .select('email')
-        .order('created_at')
-
-      if (error) throw error
-      recipientEmails = data.map((rep) => rep.email).filter(Boolean)
-    } else if (recipientType === 'company') {
-      if (!companyId) {
-        return { ok: false, message: 'Company ID is required' }
-      }
-      // Get representatives for specific company
-      const { data, error } = await supabase
-        .from('representatives')
-        .select('email')
-        .eq('company_id', companyId)
-        .order('created_at')
-
-      if (error) throw error
-      recipientEmails = data.map((rep) => rep.email).filter(Boolean)
-    } else if (recipientType === 'selected') {
-      if (!representativeIdsStr) {
-        return { ok: false, message: 'No representatives selected' }
-      }
-      // Get representatives by IDs
-      const ids = representativeIdsStr
-        .split(',')
-        .map((id) => id.trim())
-        .filter((id) => id.length > 0)
-
-      if (ids.length === 0) {
-        return { ok: false, message: 'No valid representative IDs provided' }
-      }
-
-      const { data, error } = await supabase
-        .from('representatives')
-        .select('email')
-        .in('id', ids)
-
-      if (error) throw error
-      recipientEmails = data.map((rep) => rep.email).filter(Boolean)
-    } else {
-      return { ok: false, message: 'Invalid recipient type' }
-    }
-
-    if (recipientEmails.length === 0) {
-      return { ok: false, message: 'No recipients found' }
-    }
+    const target = await resolveRecipients(supabase, recipientType, formData)
+    if (!target.ok) return target
+    const recipientEmails = target.recipients.map((rep) => rep.email)
 
     // Build email content using the announcement template
     const { subject, html, text } = buildAdminAnnouncementEmail({
@@ -288,35 +234,104 @@ export async function sendUpdateAction(
   }
 }
 
+export type SendSmsBlastState = {
+  ok: boolean
+  message: string
+  sentCount?: number
+}
+
+export async function sendSmsBlastAction(
+  _prevState: SendSmsBlastState | undefined,
+  formData: FormData,
+): Promise<SendSmsBlastState> {
+  const message = String(formData.get('message') ?? '').trim()
+  const recipientType = String(formData.get('recipientType') ?? '')
+
+  if (!message) return { ok: false, message: 'SMS message is required' }
+  if (message.length > 160) {
+    return { ok: false, message: 'Keep the SMS to 160 characters or fewer' }
+  }
+  if (formData.get('confirmSend') !== 'on') {
+    return { ok: false, message: 'Confirm the recipients before sending' }
+  }
+
+  try {
+    const { supabase } = await assertAdmin()
+    const target = await resolveRecipients(supabase, recipientType, formData)
+    if (!target.ok) return target
+
+    const phoneNumbers = Array.from(new Set(target.recipients
+      .map((rep) => rep.phone_number)
+      .filter((phone): phone is string => phone !== null)
+      .filter((phone) => normaliseKenyanPhone(phone) !== null)))
+
+    if (phoneNumbers.length === 0) {
+      return { ok: false, message: 'No selected representatives have a valid Kenyan phone number' }
+    }
+
+    const result = await sendSms({ to: phoneNumbers, message })
+    if (!result.ok) return { ok: false, message: `SMS was not sent: ${result.error}` }
+
+    return {
+      ok: true,
+      sentCount: phoneNumbers.length,
+      message: `SMS sent to ${phoneNumbers.length} representative${phoneNumbers.length === 1 ? '' : 's'}.`,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'An unexpected error occurred',
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helper functions
 // ---------------------------------------------------------------------------
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }
+    return entities[character] ?? character
+  })
+}
 
 function buildAdminEmailContent(
   subject: string,
   body: string,
 ): { html: string; text: string } {
-  // Simple HTML email template
+  const safeSubject = escapeHtml(subject)
+  const safeBody = body
+    .split(/\r?\n/)
+    .map(escapeHtml)
+    .join('<br>')
+
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #15221b; line-height: 1.6; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 20px auto; padding: 20px; }
     .header { text-align: center; margin-bottom: 20px; }
     .content { line-height: 1.6; }
-    .footer { margin-top: 30px; font-size: 14px; color: #64748b; text-align: center; }
+    .footer { margin-top: 30px; font-size: 14px; color: #4a5a50; text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h2>${subject}</h2>
+      <h2>${safeSubject}</h2>
     </div>
     <div class="content">
-      ${body.replace(/\n/g, '<br>')}
+      ${safeBody}
     </div>
     <div class="footer">
       Quick Tenders Admin<br>

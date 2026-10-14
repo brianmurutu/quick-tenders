@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { createClient } from '@/lib/supabase/server'
+import { textSmsConfigured, textSmsConfigHint } from '@/lib/sms/textsms'
 import type { ScrapeRunStatus } from '@/types/database'
 
 import { AdminResendAuthCard } from './_components/admin-resend-auth-card'
@@ -74,6 +75,8 @@ async function fetchDashboardData() {
     companiesSignupRows,
     tendersMatchedRows,
     scrapeRunRows,
+    recipientCompanies,
+    recipientRepresentatives,
   ] = await Promise.all([
     // --- Metric tiles ---
     supabase.from('companies').select('id', { count: 'exact', head: true }),
@@ -113,6 +116,8 @@ async function fetchDashboardData() {
       .gte('run_at', daysAgo(14))
       .order('run_at', { ascending: false })
       .limit(500),
+    fetchRecipientCompanies(supabase),
+    fetchRecipientRepresentatives(supabase),
   ])
 
   // --- Build daily buckets for trend charts ---
@@ -173,6 +178,48 @@ async function fetchDashboardData() {
     signupSeries,
     tenderSeries,
     sources,
+    recipientCompanies,
+    recipientRepresentatives,
+  }
+}
+
+async function fetchRecipientCompanies(supabase: ReturnType<typeof createClient>) {
+  const rows: { id: string; name: string | null; domain: string }[] = []
+
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('id, name, domain')
+      .order('name', { ascending: true })
+      .range(offset, offset + 999)
+
+    if (error) throw error
+    rows.push(...(data ?? []))
+    if (!data || data.length < 1000) return rows
+  }
+}
+
+async function fetchRecipientRepresentatives(
+  supabase: ReturnType<typeof createClient>,
+) {
+  const rows: {
+    id: string
+    company_id: string | null
+    full_name: string | null
+    email: string
+    phone_number: string | null
+  }[] = []
+
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase
+      .from('representatives')
+      .select('id, company_id, full_name, email, phone_number')
+      .order('created_at', { ascending: true })
+      .range(offset, offset + 999)
+
+    if (error) throw error
+    rows.push(...(data ?? []))
+    if (!data || data.length < 1000) return rows
   }
 }
 
@@ -214,7 +261,14 @@ function TrendChart({
 }
 
 export default async function AdminDashboardPage() {
-  const { metrics, signupSeries, tenderSeries, sources } = await fetchDashboardData()
+  const {
+    metrics,
+    signupSeries,
+    tenderSeries,
+    sources,
+    recipientCompanies,
+    recipientRepresentatives,
+  } = await fetchDashboardData()
 
   return (
     <div className="space-y-10">
@@ -260,7 +314,12 @@ export default async function AdminDashboardPage() {
       <AdminResendAuthCard />
 
       {/* Email actions */}
-      <AdminEmailActionsCard />
+      <AdminEmailActionsCard
+        companies={recipientCompanies}
+        representatives={recipientRepresentatives}
+        smsConfigured={textSmsConfigured()}
+        smsConfigurationHint={textSmsConfigHint()}
+      />
 
       {/* Trend charts */}
       <section aria-labelledby="trends-heading" className="space-y-4">
@@ -282,7 +341,7 @@ export default async function AdminDashboardPage() {
             No scrape-run data in the last 14 days. The discovery cron may not have run yet.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="responsive-table">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-100">

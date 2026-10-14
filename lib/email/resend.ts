@@ -32,6 +32,7 @@ const UNVERIFIABLE_SENDER_DOMAINS = new Set([
 
 export type SendEmailInput = {
   to: string[]
+  bcc?: string[]
   subject: string
   html: string
   text: string
@@ -151,6 +152,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       body: JSON.stringify({
         from,
         to: recipients,
+        ...(input.bcc?.length ? { bcc: input.bcc } : {}),
         subject: input.subject,
         html: input.html,
         text: input.text,

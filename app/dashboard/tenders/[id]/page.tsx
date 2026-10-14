@@ -68,7 +68,7 @@ export default async function TenderDetailPage({ params }: { params: { id: strin
   const urgent = bucket !== 'submitted' && isUrgent(tender.deadline, today)
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="user-dashboard">
       <AppHeader
         right={
           <Link

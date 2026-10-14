@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { Logo } from '@/components/logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { signOutAction } from '@/lib/auth-actions'
 
 /**
@@ -31,6 +32,8 @@ export function AppHeader({
 
         <div className="app-header-actions">
           {right ? <div className="app-header-context">{right}</div> : null}
+
+          <ThemeToggle />
 
           {showSignOut ? (
             <form action={signOutAction}>

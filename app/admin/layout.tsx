@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { Logo } from '@/components/logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { signOutAction } from '@/lib/auth-actions'
 import { createClient } from '@/lib/supabase/server'
 
@@ -61,24 +62,21 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top bar */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+    <div className="admin-shell">
+      <header className="admin-topbar">
+        <div className="admin-topbar-inner">
+          <div className="admin-brand">
             <Logo />
-            <span className="select-none text-xs font-semibold uppercase tracking-widest text-slate-400">
+            <span>
               Admin
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-sm">
+          <div className="admin-account">
+            <ThemeToggle />
             <span className="text-slate-500">{user.email}</span>
             <form action={signOutAction}>
-              <button
-                type="submit"
-                className="rounded-sm font-medium text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
-              >
+              <button type="submit" className="admin-signout">
                 Sign out
               </button>
             </form>
@@ -86,15 +84,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </div>
       </header>
 
-      {/* Body: sidebar + content */}
-      <div className="mx-auto flex max-w-7xl gap-8 px-6 py-8 lg:px-8">
-        {/* Sidebar */}
-        <aside className="w-44 shrink-0">
+      <div className="admin-workspace">
+        <aside className="admin-sidebar">
           <AdminNav />
         </aside>
 
-        {/* Main content area */}
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="admin-main">{children}</main>
       </div>
     </div>
   )

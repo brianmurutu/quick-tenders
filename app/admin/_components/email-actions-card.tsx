@@ -4,276 +4,352 @@ import { useState } from 'react'
 
 import {
   sendCustomEmailAction,
+  sendSmsBlastAction,
   sendUpdateAction,
   type SendCustomEmailState,
+  type SendSmsBlastState,
   type SendUpdateState,
 } from '@/app/admin/email-actions'
 
-export default function AdminEmailActionsCard() {
-  const [customEmailState, setCustomEmailState] = useState<SendCustomEmailState | undefined>(undefined)
-  const [updateState, setUpdateState] = useState<SendUpdateState | undefined>(undefined)
+type RecipientType = 'all' | 'company' | 'selected'
+
+type CompanyOption = {
+  id: string
+  name: string | null
+  domain: string
+}
+
+type RepresentativeOption = {
+  id: string
+  company_id: string | null
+  full_name: string | null
+  email: string
+  phone_number: string | null
+}
+
+type Audience = {
+  type: RecipientType
+  companyId: string
+  representativeIds: string[]
+}
+
+const initialAudience: Audience = {
+  type: 'all',
+  companyId: '',
+  representativeIds: [],
+}
+
+export default function AdminEmailActionsCard({
+  companies,
+  representatives,
+  smsConfigured,
+  smsConfigurationHint,
+}: {
+  companies: CompanyOption[]
+  representatives: RepresentativeOption[]
+  smsConfigured: boolean
+  smsConfigurationHint: string
+}) {
+  const [customEmailState, setCustomEmailState] = useState<SendCustomEmailState>()
+  const [updateState, setUpdateState] = useState<SendUpdateState>()
+  const [smsState, setSmsState] = useState<SendSmsBlastState>()
   const [customEmailLoading, setCustomEmailLoading] = useState(false)
   const [updateLoading, setUpdateLoading] = useState(false)
-  const [customEmailRecipientType, setCustomEmailRecipientType] = useState<'all' | 'company' | 'selected'>('all')
-  const [updateRecipientType, setUpdateRecipientType] = useState<'all' | 'company' | 'selected'>('all')
+  const [smsLoading, setSmsLoading] = useState(false)
+  const [emailAudience, setEmailAudience] = useState<Audience>(initialAudience)
+  const [updateAudience, setUpdateAudience] = useState<Audience>(initialAudience)
+  const [smsAudience, setSmsAudience] = useState<Audience>(initialAudience)
 
   async function handleCustomEmail(formData: FormData) {
     setCustomEmailLoading(true)
-    const result = await sendCustomEmailAction(customEmailState, formData)
-    setCustomEmailState(result)
-    setCustomEmailLoading(false)
+    try {
+      setCustomEmailState(await sendCustomEmailAction(customEmailState, formData))
+    } finally {
+      setCustomEmailLoading(false)
+    }
   }
 
   async function handleUpdate(formData: FormData) {
     setUpdateLoading(true)
-    const result = await sendUpdateAction(updateState, formData)
-    setUpdateState(result)
-    setUpdateLoading(false)
+    try {
+      setUpdateState(await sendUpdateAction(updateState, formData))
+    } finally {
+      setUpdateLoading(false)
+    }
+  }
+
+  async function handleSms(formData: FormData) {
+    setSmsLoading(true)
+    try {
+      setSmsState(await sendSmsBlastAction(smsState, formData))
+    } finally {
+      setSmsLoading(false)
+    }
   }
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-slate-900">
-          Email Communications
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Send custom emails or updates to representatives.
-        </p>
-      </div>
+    <section className="admin-comms" aria-labelledby="communications-heading">
+      <header className="admin-comms-header">
+        <div>
+          <h2 id="communications-heading">Communications</h2>
+          <p>Send targeted email updates or SMS to company representatives.</p>
+        </div>
+        <span className={`admin-comms-status ${smsConfigured ? 'is-ready' : 'is-unavailable'}`}>
+          SMS {smsConfigured ? 'ready' : 'not configured'}
+        </span>
+      </header>
 
-      {/* Custom Email Form */}
-      <section aria-labelledby="custom-email-heading">
-        <h3 id="custom-email-heading" className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">
-          Send Custom Email
-        </h3>
-        <form
-          action={handleCustomEmail}
-          className="space-y-4"
-          data-state={customEmailState?.ok ? 'success' : customEmailState?.ok === false ? 'error' : 'idle'}
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="custom-email-subject" className="block text-sm font-medium text-slate-700 mb-1">
-                Subject
-              </label>
-              <input
-                id="custom-email-subject"
-                name="subject"
-                type="text"
-                required
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="custom-email-recipient-type" className="block text-sm font-medium text-slate-700 mb-1">
-                Recipient Type
-              </label>
-              <select
-                id="custom-email-recipient-type"
-                name="recipientType"
-                required
-                value={customEmailRecipientType}
-                onChange={(e) => setCustomEmailRecipientType(e.target.value as 'all' | 'company' | 'selected')}
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-              >
-                <option value="all">All Representatives</option>
-                <option value="company">Specific Company</option>
-                <option value="selected">Selected Representatives</option>
-              </select>
-            </div>
+      <div className="admin-comms-grid">
+        <section className="admin-comms-panel" aria-labelledby="custom-email-heading">
+          <div className="admin-comms-panel-heading">
+            <h3 id="custom-email-heading">Send an email</h3>
+            <p>Write a direct message to one or more representatives.</p>
           </div>
-
-          <div>
-            <label htmlFor="custom-email-body" className="block text-sm font-medium text-slate-700 mb-1">
-              Email Body (plain text)
-            </label>
-            <textarea
-              id="custom-email-body"
-              name="body"
-              rows={4}
-              required
-              className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-            />
-          </div>
-
-          {customEmailRecipientType === 'company' && (
-            <div className="mt-4">
-              <label htmlFor="custom-email-company-id" className="block text-sm font-medium text-slate-700 mb-1">
-                Company ID
-              </label>
-              <input
-                id="custom-email-company-id"
-                name="companyId"
-                type="text"
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-                placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
+          <form action={handleCustomEmail} className="admin-comms-form">
+            <div className="admin-comms-fields">
+              <Field label="Subject" htmlFor="custom-email-subject">
+                <input id="custom-email-subject" name="subject" type="text" required />
+              </Field>
+              <RecipientFields
+                idPrefix="custom-email"
+                audience={emailAudience}
+                onChange={setEmailAudience}
+                companies={companies}
+                representatives={representatives}
               />
             </div>
-          )}
-          {customEmailRecipientType === 'selected' && (
-            <div className="mt-4">
-              <label htmlFor="custom-email-representative-ids" className="block text-sm font-medium text-slate-700 mb-1">
-                Representative IDs (comma-separated)
-              </label>
-              <input
-                id="custom-email-representative-ids"
-                name="representativeIds"
-                type="text"
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-                placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000,456e7890-e89b-12d3-a456-426614174001"
-              />
-            </div>
-          )}
-
-          <div className="mt-6">
-            <button
-              type="submit"
-              disabled={customEmailLoading}
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 ${
-                customEmailLoading ? 'bg-slate-400' : ''
-              }`}
-            >
-              {customEmailLoading ? 'Sending...' : 'Send Email'}
+            <Field label="Message" htmlFor="custom-email-body">
+              <textarea id="custom-email-body" name="body" rows={5} required />
+            </Field>
+            <button className="admin-comms-submit" type="submit" disabled={customEmailLoading}>
+              {customEmailLoading ? 'Sending…' : 'Send email'}
             </button>
+            <ActionMessage state={customEmailState} />
+          </form>
+        </section>
+
+        <section className="admin-comms-panel" aria-labelledby="update-heading">
+          <div className="admin-comms-panel-heading">
+            <h3 id="update-heading">Send an update</h3>
+            <p>Share a service announcement by email.</p>
           </div>
-
-          {customEmailState && (
-            <p className={`mt-4 text-sm font-medium ${
-              customEmailState.ok ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {customEmailState.message}
-              {customEmailState.sentCount && ` (Sent to ${customEmailState.sentCount} recipient${customEmailState.sentCount === 1 ? '' : 's'})`}
-            </p>
-          )}
-        </form>
-      </section>
-
-      {/* Update/Newsletter Form */}
-      <section aria-labelledby="update-heading">
-        <h3 id="update-heading" className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">
-          Send Update / Newsletter
-        </h3>
-        <form
-          action={handleUpdate}
-          className="space-y-4"
-          data-state={updateState?.ok ? 'success' : updateState?.ok === false ? 'error' : 'idle'}
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="update-title" className="block text-sm font-medium text-slate-700 mb-1">
-                Title
-              </label>
-              <input
-                id="update-title"
-                name="title"
-                type="text"
-                required
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
+          <form action={handleUpdate} className="admin-comms-form">
+            <div className="admin-comms-fields">
+              <Field label="Title" htmlFor="update-title">
+                <input id="update-title" name="title" type="text" required />
+              </Field>
+              <RecipientFields
+                idPrefix="update"
+                audience={updateAudience}
+                onChange={setUpdateAudience}
+                companies={companies}
+                representatives={representatives}
               />
             </div>
-            <div>
-              <label htmlFor="update-recipient-type" className="block text-sm font-medium text-slate-700 mb-1">
-                Recipient Type
-              </label>
-              <select
-                id="update-recipient-type"
-                name="recipientType"
-                required
-                value={updateRecipientType}
-                onChange={(e) => setUpdateRecipientType(e.target.value as 'all' | 'company' | 'selected')}
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-              >
-                <option value="all">All Representatives</option>
-                <option value="company">Specific Company</option>
-                <option value="selected">Selected Representatives</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="update-content" className="block text-sm font-medium text-slate-700 mb-1">
-              Update Content (plain text)
+            <Field label="Update message" htmlFor="update-content">
+              <textarea id="update-content" name="content" rows={5} required />
+            </Field>
+            <label className="admin-comms-checkbox">
+              <input id="update-is-important" name="isImportant" type="checkbox" />
+              <span>
+                <strong>Mark as important</strong>
+                <span>Highlights the announcement in the email.</span>
+              </span>
             </label>
-            <textarea
-              id="update-content"
-              name="content"
-              rows={4}
-              required
-              className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-            />
-          </div>
+            <button className="admin-comms-submit" type="submit" disabled={updateLoading}>
+              {updateLoading ? 'Sending…' : 'Send update'}
+            </button>
+            <ActionMessage state={updateState} />
+          </form>
+        </section>
 
-          <div className="flex items-start space-x-3">
-            <div className="flex items-start h-5">
-              <input
-                id="update-is-important"
-                name="isImportant"
-                type="checkbox"
-                className="h-4 w-4 text-slate-600 focus:ring-slate-500"
+        <section className="admin-comms-panel admin-comms-sms" aria-labelledby="sms-heading">
+          <div className="admin-comms-panel-heading">
+            <h3 id="sms-heading">Send an SMS</h3>
+            <p>Messages go to valid Kenyan numbers saved on representative profiles.</p>
+          </div>
+          {!smsConfigured ? (
+            <p className="admin-comms-notice" role="status">{smsConfigurationHint}</p>
+          ) : (
+            <form action={handleSms} className="admin-comms-form">
+              <RecipientFields
+                idPrefix="sms"
+                audience={smsAudience}
+                onChange={setSmsAudience}
+                companies={companies}
+                representatives={representatives}
               />
-            </div>
-            <div className="ml-3 text-base">
-              <label htmlFor="update-is-important" className="font-medium text-slate-900">
-                Mark as important
-              </label>
-              <p className="text-sm text-slate-500 mt-1">
-                Prepends &#x26A0;&#xFE0F; to the title and highlights in email.
+              <Field label="SMS message" htmlFor="admin-sms-message">
+                <textarea
+                  id="admin-sms-message"
+                  name="message"
+                  rows={4}
+                  maxLength={160}
+                  required
+                  aria-describedby="admin-sms-length"
+                />
+              </Field>
+              <p id="admin-sms-length" className="admin-comms-help">
+                Keep the message to 160 characters or fewer. SMS sending may incur provider charges.
               </p>
-            </div>
-          </div>
-
-          {updateRecipientType === 'company' && (
-            <div className="mt-4">
-              <label htmlFor="update-company-id" className="block text-sm font-medium text-slate-700 mb-1">
-                Company ID
+              <label className="admin-comms-checkbox admin-comms-confirm">
+                <input name="confirmSend" type="checkbox" required />
+                <span>
+                  <strong>Confirm SMS send</strong>
+                  <span>
+                    I have checked the selected audience and confirm this message should be sent.
+                  </span>
+                </span>
               </label>
-              <input
-                id="update-company-id"
-                name="companyId"
-                type="text"
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-                placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
-              />
-            </div>
+              <button className="admin-comms-submit" type="submit" disabled={smsLoading}>
+                {smsLoading ? 'Sending…' : 'Send SMS'}
+              </button>
+              <ActionMessage state={smsState} />
+            </form>
           )}
-          {updateRecipientType === 'selected' && (
-            <div className="mt-4">
-              <label htmlFor="update-representative-ids" className="block text-sm font-medium text-slate-700 mb-1">
-                Representative IDs (comma-separated)
+        </section>
+      </div>
+    </section>
+  )
+}
+
+function RecipientFields({
+  idPrefix,
+  audience,
+  onChange,
+  companies,
+  representatives,
+}: {
+  idPrefix: string
+  audience: Audience
+  onChange: (audience: Audience) => void
+  companies: CompanyOption[]
+  representatives: RepresentativeOption[]
+}) {
+  const visibleRepresentatives =
+    audience.type === 'company' && audience.companyId
+      ? representatives.filter((rep) => rep.company_id === audience.companyId)
+      : representatives
+  const selectedCount =
+    audience.type === 'all'
+      ? representatives.length
+      : audience.type === 'company'
+        ? visibleRepresentatives.length
+        : audience.representativeIds.length
+
+  function update(patch: Partial<Audience>) {
+    onChange({ ...audience, ...patch })
+  }
+
+  return (
+    <div className="admin-comms-recipient">
+      <Field label="Recipients" htmlFor={`${idPrefix}-recipient-type`}>
+        <select
+          id={`${idPrefix}-recipient-type`}
+          name="recipientType"
+          value={audience.type}
+          onChange={(event) =>
+            update({
+              type: event.currentTarget.value as RecipientType,
+              representativeIds: [],
+            })
+          }
+        >
+          <option value="all">All representatives ({representatives.length})</option>
+          <option value="company">One company</option>
+          <option value="selected">Selected representatives</option>
+        </select>
+      </Field>
+
+      {audience.type === 'company' ? (
+        <Field label="Company" htmlFor={`${idPrefix}-company`}>
+          <select
+            id={`${idPrefix}-company`}
+            name="companyId"
+            value={audience.companyId}
+            onChange={(event) =>
+              update({ companyId: event.currentTarget.value, representativeIds: [] })
+            }
+            required
+          >
+            <option value="">Choose a company</option>
+            {companies.map((company) => (
+              <option value={company.id} key={company.id}>
+                {company.name || company.domain} ({company.domain})
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : null}
+
+      {audience.type === 'selected' ? (
+        <fieldset className="admin-recipient-list">
+          <legend>Select representatives</legend>
+          {visibleRepresentatives.length ? (
+            visibleRepresentatives.map((representative) => (
+              <label className="admin-recipient-option" key={representative.id}>
+                <input
+                  type="checkbox"
+                  name="representativeIds"
+                  value={representative.id}
+                  checked={audience.representativeIds.includes(representative.id)}
+                  onChange={(event) => {
+                    const selected = new Set(audience.representativeIds)
+                    if (event.currentTarget.checked) selected.add(representative.id)
+                    else selected.delete(representative.id)
+                    update({ representativeIds: Array.from(selected) })
+                  }}
+                />
+                <span>
+                  <strong>{representative.full_name || representative.email}</strong>
+                  <span>{representative.email}</span>
+                </span>
               </label>
-              <input
-                id="update-representative-ids"
-                name="representativeIds"
-                type="text"
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-inset placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 sm:text-sm"
-                placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000,456e7890-e89b-12d3-a456-426614174001"
-              />
-            </div>
+            ))
+          ) : (
+            <p className="admin-comms-help">No representatives are available.</p>
           )}
+        </fieldset>
+      ) : null}
 
-          <div className="mt-6">
-            <button
-              type="submit"
-              disabled={updateLoading}
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 ${
-                updateLoading ? 'bg-slate-400' : ''
-              }`}
-            >
-              {updateLoading ? 'Sending...' : 'Send Update'}
-            </button>
-          </div>
-
-          {updateState && (
-            <p className={`mt-4 text-sm font-medium ${
-              updateState.ok ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {updateState.message}
-              {updateState.sentCount && ` (Sent to ${updateState.sentCount} recipient${updateState.sentCount === 1 ? '' : 's'})`}
-            </p>
-          )}
-        </form>
-      </section>
+      <p className="admin-comms-help" aria-live="polite">
+        {selectedCount} representative{selectedCount === 1 ? '' : 's'} in this audience.
+      </p>
     </div>
+  )
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string
+  htmlFor: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="admin-comms-field">
+      <label htmlFor={htmlFor}>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function ActionMessage({
+  state,
+}: {
+  state: { ok: boolean; message: string; sentCount?: number } | undefined
+}) {
+  if (!state) return null
+
+  return (
+    <p
+      className={`admin-comms-result ${state.ok ? 'is-success' : 'is-error'}`}
+      role={state.ok ? 'status' : 'alert'}
+    >
+      {state.message}
+      {state.sentCount ? ` Sent to ${state.sentCount} recipient${state.sentCount === 1 ? '' : 's'}.` : ''}
+    </p>
   )
 }

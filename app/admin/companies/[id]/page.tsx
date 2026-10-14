@@ -231,7 +231,7 @@ export default async function AdminCompanyDetailPage({ params }: { params: { id:
         {tenders.length === 0 ? (
           <p className="text-sm text-slate-400">No tenders matched yet.</p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-100">
+          <div className="responsive-table">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">

@@ -37,7 +37,8 @@ export async function sendAdminEmail(input: AdminEmailInput): Promise<AdminEmail
 
   try {
     const result = await sendEmail({
-      to: validRecipients,
+      to: [validRecipients[0]],
+      bcc: validRecipients.slice(1),
       subject: input.subject,
       html: input.html,
       text: input.text ?? '',

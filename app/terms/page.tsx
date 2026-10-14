@@ -4,7 +4,6 @@ import Link from 'next/link'
 import {
   Bullets,
   ContentPage,
-  DraftNotice,
   Section,
 } from '@/components/content-page'
 
@@ -21,14 +20,6 @@ export default function TermsPage() {
       title="Terms of service"
       intro="These terms cover the use of Quick Tenders by a company and by the representative who signs up on its behalf."
       updated="26 August 2026"
-      notice={
-        <DraftNotice>
-          This text is a working draft written to match how the product actually
-          behaves. It has not been reviewed by a lawyer and it is not legal
-          advice. The liability, governing law and fee sections in particular need
-          counsel and your own commercial decisions before this can be published.
-        </DraftNotice>
-      }
     >
       <Section heading="Who can use the service">
         <p>
