@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useId, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 
+import { GoogleAuthButton } from '@/components/auth/google-auth-button'
+import { TurnstileWidget } from '@/components/auth/turnstile-widget'
 import { Button, Card, CheckboxChip, Input, Select } from '@/components/ui'
 import {
   EMPTY_SIGN_UP,
@@ -14,7 +16,11 @@ import {
 } from '@/lib/signup'
 import { INDUSTRIES, MAX_SECTORS, SECTORS } from '@/lib/company-profile'
 
-import { signUp, type SignUpResult } from './actions'
+import {
+  resendSignupConfirmation,
+  signUp,
+  type SignUpResult,
+} from './actions'
 
 type Status = 'idle' | 'submitting' | SignUpResult['status']
 
@@ -33,8 +39,23 @@ export function SignupForm({ initialError }: { initialError?: string }) {
   const [status, setStatus] = useState<Status>('idle')
   const [confirmEmail, setConfirmEmail] = useState('')
   const [blocked, setBlocked] = useState<Blocked | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetVersion, setCaptchaResetVersion] = useState(0)
+  const [resending, setResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string>()
+  const captchaRequired =
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim())
 
   const submitting = status === 'submitting'
+  const handleCaptchaToken = useCallback((token: string | null) => {
+    setCaptchaToken(token)
+  }, [])
+
+  const resetCaptcha = useCallback(() => {
+    setCaptchaToken(null)
+    setCaptchaResetVersion((version) => version + 1)
+  }, [])
 
   function update<K extends keyof SignUpInput>(field: K, value: SignUpInput[K]) {
     setValues((current) => ({ ...current, [field]: value }))
@@ -85,7 +106,8 @@ export function SignupForm({ initialError }: { initialError?: string }) {
     setStatus('submitting')
 
     try {
-      const result = await signUp(values)
+      const result = await signUp(values, captchaToken ?? undefined)
+      resetCaptcha()
 
       if (result.status === 'invalid') {
         setFieldErrors(result.fieldErrors)
@@ -108,6 +130,30 @@ export function SignupForm({ initialError }: { initialError?: string }) {
     } catch {
       setFormError('Something went wrong sending that. Try again in a moment.')
       setStatus('error')
+      resetCaptcha()
+    }
+  }
+
+  async function handleResendConfirmation() {
+    setResending(true)
+    setResendMessage(undefined)
+
+    try {
+      const result = await resendSignupConfirmation(
+        confirmEmail,
+        captchaToken ?? undefined,
+      )
+      resetCaptcha()
+      setResendMessage(
+        result.status === 'sent'
+          ? 'If this account still needs confirmation, a new link has been requested. Check your inbox and spam folder.'
+          : result.message,
+      )
+    } catch {
+      resetCaptcha()
+      setResendMessage('We could not resend the confirmation email just now. Try again shortly.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -156,9 +202,25 @@ export function SignupForm({ initialError }: { initialError?: string }) {
           takes you to onboarding.
         </p>
         <p>
-          Nothing has been created yet, so if the address is wrong you can simply
-          sign up again. Links expire, so use the newest one you receive.
+          If it is not there, check your spam folder. Confirmation links expire,
+          so use the newest one you receive.
         </p>
+        <TurnstileWidget
+          action="google_auth"
+          onToken={handleCaptchaToken}
+          resetVersion={captchaResetVersion}
+        />
+        {resendMessage ? (
+          <p role="status" className="text-sm text-slate-700">{resendMessage}</p>
+        ) : null}
+        <Button
+          type="button"
+          onClick={handleResendConfirmation}
+          disabled={resending || (captchaRequired && !captchaToken)}
+          className="w-full"
+        >
+          {resending ? 'Requesting a new link...' : 'Resend confirmation email'}
+        </Button>
       </Panel>
     )
   }
@@ -190,6 +252,23 @@ export function SignupForm({ initialError }: { initialError?: string }) {
           {formError}
         </div>
       ) : null}
+
+      <TurnstileWidget
+        action="google_auth"
+        onToken={handleCaptchaToken}
+        resetVersion={captchaResetVersion}
+      />
+
+      <GoogleAuthButton
+        flow="signup"
+        captchaToken={captchaToken}
+        resetCaptcha={resetCaptcha}
+      />
+      <div className="flex items-center gap-3 text-xs text-slate-400" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span>or sign up with your company email</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
 
       <Input
         id={`${formId}-full-name`}
@@ -301,7 +380,7 @@ export function SignupForm({ initialError }: { initialError?: string }) {
 
       <Button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || (captchaRequired && !captchaToken)}
         className="w-full"
       >
         {submitting ? 'Creating your account...' : 'Start the 3-day trial'}

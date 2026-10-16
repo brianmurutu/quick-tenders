@@ -98,7 +98,7 @@ export default async function OnboardingPage() {
         ) : null}
 
         <div className="mt-12">
-          <OnboardingForm initial={initial} />
+          <OnboardingForm initial={initial} initialCompanyName={company.name ?? ''} />
         </div>
       </main>
     </div>

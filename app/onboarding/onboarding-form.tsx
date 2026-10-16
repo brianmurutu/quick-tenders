@@ -17,10 +17,17 @@ import {
 
 import { saveCompanyProfile } from './actions'
 
-export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
+export function OnboardingForm({
+  initial,
+  initialCompanyName,
+}: {
+  initial: CompanyProfile
+  initialCompanyName: string
+}) {
   const formId = useId()
   const router = useRouter()
   const [values, setValues] = useState<CompanyProfile>(initial)
+  const [companyName, setCompanyName] = useState(initialCompanyName)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [fieldErrors, setFieldErrors] = useState<CompanyProfileErrors>({})
   const [formError, setFormError] = useState<string>()
@@ -67,7 +74,11 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
     setSaving(true)
 
     try {
-      const result = await saveCompanyProfile(values, phoneNumber.trim() || null)
+      const result = await saveCompanyProfile(
+        values,
+        phoneNumber.trim() || null,
+        companyName,
+      )
 
       if (result.status === 'invalid') {
         setFieldErrors(result.fieldErrors)
@@ -100,6 +111,17 @@ export function OnboardingForm({ initial }: { initial: CompanyProfile }) {
           {formError}
         </div>
       ) : null}
+
+      <Input
+        id={`${formId}-company-name`}
+        label="Company name"
+        helperText="The name shown on your tender dashboard and bid documents."
+        type="text"
+        name="company_name"
+        autoComplete="organization"
+        value={companyName}
+        onChange={(event) => setCompanyName(event.target.value)}
+      />
 
       <Select
         id={`${formId}-industry`}

@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useId, useState } from 'react'
 
+import { GoogleAuthButton } from '@/components/auth/google-auth-button'
+import { TurnstileWidget } from '@/components/auth/turnstile-widget'
 import {
   EMPTY_SIGN_IN,
   validateSignIn,
@@ -25,6 +27,16 @@ export function LoginForm({
   const [fieldErrors, setFieldErrors] = useState<SignInFieldErrors>({})
   const [formError, setFormError] = useState<string>()
   const [pending, setPending] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetVersion, setCaptchaResetVersion] = useState(0)
+  const captchaRequired =
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim())
+
+  function resetCaptcha() {
+    setCaptchaToken(null)
+    setCaptchaResetVersion((version) => version + 1)
+  }
 
   function update<K extends keyof SignInInput>(field: K, value: string) {
     setValues((current) => ({ ...current, [field]: value }))
@@ -51,7 +63,8 @@ export function LoginForm({
     setPending(true)
 
     try {
-      const result = await signIn(values, next)
+      const result = await signIn(values, next, captchaToken ?? undefined)
+      resetCaptcha()
 
       if (result.status === 'invalid') {
         setFieldErrors(result.fieldErrors)
@@ -73,6 +86,7 @@ export function LoginForm({
       window.location.assign(result.next)
     } catch {
       setFormError('Something went wrong signing you in. Try again in a moment.')
+      resetCaptcha()
       setPending(false)
     }
   }
@@ -87,6 +101,24 @@ export function LoginForm({
           {initialMessage}
         </div>
       ) : null}
+
+      <TurnstileWidget
+        action="google_auth"
+        onToken={setCaptchaToken}
+        resetVersion={captchaResetVersion}
+      />
+
+      <GoogleAuthButton
+        flow="signin"
+        next={next}
+        captchaToken={captchaToken}
+        resetCaptcha={resetCaptcha}
+      />
+      <div className="flex items-center gap-3 text-xs text-slate-400" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span>or sign in with email</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
 
       {formError ? (
         <div
@@ -122,7 +154,7 @@ export function LoginForm({
 
       <Button
         type="submit"
-        disabled={pending}
+        disabled={pending || (captchaRequired && !captchaToken)}
         className="w-full"
       >
         {pending ? 'Signing you in...' : 'Sign in'}

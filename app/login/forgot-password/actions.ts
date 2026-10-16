@@ -2,16 +2,25 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getSiteUrl } from '@/lib/env'
+import { turnstileMissingTokenMessage } from '@/lib/turnstile'
 
 export type ForgotPasswordResult =
   | { status: 'sent' }
   | { status: 'error'; message: string }
 
-export async function requestPasswordReset(email: string): Promise<ForgotPasswordResult> {
+export async function requestPasswordReset(
+  email: string,
+  captchaToken?: string,
+): Promise<ForgotPasswordResult> {
   const trimmed = email.trim().toLowerCase()
 
   if (!trimmed || !trimmed.includes('@')) {
     return { status: 'error', message: 'Enter a valid email address.' }
+  }
+
+  const captchaError = turnstileMissingTokenMessage()
+  if (captchaError && !captchaToken?.trim()) {
+    return { status: 'error', message: captchaError }
   }
 
   const supabase = createClient()
@@ -19,7 +28,10 @@ export async function requestPasswordReset(email: string): Promise<ForgotPasswor
 
   // Supabase always returns ok=true here (no account enumeration).
   // If the email exists a magic link is sent; if not, nothing happens.
-  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo })
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+    redirectTo,
+    captchaToken: captchaToken?.trim(),
+  })
 
   if (error) {
     return { status: 'error', message: 'We could not send the reset link just now. Try again in a moment.' }

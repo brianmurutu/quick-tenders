@@ -11,6 +11,7 @@ import {
 } from '@/lib/signup'
 import { notifyAdminOfSignup } from '@/lib/email/admin-notification'
 import { createClient } from '@/lib/supabase/server'
+import { turnstileMissingTokenMessage } from '@/lib/turnstile'
 
 export type SignUpResult =
   /** Field level problems, shown inline on the form. */
@@ -29,11 +30,19 @@ export type SignUpResult =
   /** Confirmations are off on the project, so the account is already live. */
   | { status: 'ready' }
 
-export async function signUp(input: SignUpInput): Promise<SignUpResult> {
+export async function signUp(
+  input: SignUpInput,
+  captchaToken?: string,
+): Promise<SignUpResult> {
   const fieldErrors = validateSignUp(input)
 
   if (Object.keys(fieldErrors).length > 0) {
     return { status: 'invalid', fieldErrors }
+  }
+
+  const captchaError = turnstileMissingTokenMessage()
+  if (captchaError && !captchaToken?.trim()) {
+    return { status: 'error', message: captchaError }
   }
 
   const email = input.email.trim().toLowerCase()
@@ -123,7 +132,8 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
     password: input.password,
     options: {
       // The callback defaults to /onboarding when no ?next= is given.
-      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+      emailRedirectTo: `${getSiteUrl()}/auth/callback?flow=signup`,
+      captchaToken: captchaToken?.trim(),
       data: {
         full_name: input.fullName.trim(),
         company_name: input.companyName.trim(),
@@ -138,7 +148,7 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
   }
 
   // Asynchronously notify admin of new signup
-  void notifyAdminOfSignup({
+  await notifyAdminOfSignup({
     fullName: input.fullName.trim(),
     email,
     companyName: input.companyName.trim(),
@@ -164,4 +174,45 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
   }
 
   return { status: 'confirm-email', email }
+}
+
+export type ResendConfirmationResult =
+  | { status: 'sent' }
+  | { status: 'error'; message: string }
+
+export async function resendSignupConfirmation(
+  email: string,
+  captchaToken?: string,
+): Promise<ResendConfirmationResult> {
+  const normalizedEmail = email.trim().toLowerCase()
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    return { status: 'error', message: 'Enter a valid email address.' }
+  }
+
+  const captchaError = turnstileMissingTokenMessage()
+  if (captchaError && !captchaToken?.trim()) {
+    return { status: 'error', message: captchaError }
+  }
+
+  const supabase = createClient()
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: normalizedEmail,
+    options: {
+      emailRedirectTo: `${getSiteUrl()}/auth/callback?flow=signup`,
+      captchaToken: captchaToken?.trim(),
+    },
+  })
+
+  if (error) {
+    console.error(
+      `[auth-email] Supabase signup confirmation resend failed (status ${error.status ?? 'unknown'}, code ${error.code ?? 'unknown'})`,
+    )
+    return {
+      status: 'error',
+      message: 'We could not resend the confirmation email just now. Try again shortly.',
+    }
+  }
+
+  return { status: 'sent' }
 }

@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useId, useState } from 'react'
 
+import { TurnstileWidget } from '@/components/auth/turnstile-widget'
+
 import { requestPasswordReset } from './actions'
 
 export function ForgotPasswordForm() {
@@ -11,6 +13,11 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState<string>()
   const [sent, setSent] = useState(false)
   const [pending, setPending] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetVersion, setCaptchaResetVersion] = useState(0)
+  const captchaRequired =
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim())
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -24,7 +31,9 @@ export function ForgotPasswordForm() {
     setPending(true)
 
     try {
-      const result = await requestPasswordReset(email)
+      const result = await requestPasswordReset(email, captchaToken ?? undefined)
+      setCaptchaToken(null)
+      setCaptchaResetVersion((version) => version + 1)
 
       if (result.status === 'error') {
         setError(result.message)
@@ -35,6 +44,8 @@ export function ForgotPasswordForm() {
       setSent(true)
     } catch {
       setError('Something went wrong. Try again in a moment.')
+      setCaptchaToken(null)
+      setCaptchaResetVersion((version) => version + 1)
       setPending(false)
     }
   }
@@ -84,6 +95,12 @@ export function ForgotPasswordForm() {
         </div>
       ) : null}
 
+      <TurnstileWidget
+        action="password_reset"
+        onToken={setCaptchaToken}
+        resetVersion={captchaResetVersion}
+      />
+
       <div>
         <label htmlFor={id} className="block text-sm font-semibold text-slate-900">
           Company email
@@ -115,7 +132,7 @@ export function ForgotPasswordForm() {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || (captchaRequired && !captchaToken)}
         className="w-full rounded-md bg-blue-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
       >
         {pending ? 'Sending...' : 'Send reset link'}

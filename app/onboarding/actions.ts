@@ -26,7 +26,16 @@ export type SaveProfileResult =
 export async function saveCompanyProfile(
   input: CompanyProfile,
   phoneNumber: string | null = null,
+  companyName = '',
 ): Promise<SaveProfileResult> {
+  const trimmedCompanyName = companyName.trim()
+  if (!trimmedCompanyName) {
+    return {
+      status: 'error',
+      message: 'Enter your company name before continuing.',
+    }
+  }
+
   const profile: CompanyProfile = {
     industry: input.industry.trim(),
     // Deduplicate before validating, so a repeated checkbox is not an error the
@@ -82,6 +91,7 @@ export async function saveCompanyProfile(
   const { error: updateError } = await supabase
     .from('companies')
     .update({
+      name: trimmedCompanyName,
       industry: profile.industry,
       sectors_of_interest: profile.sectors_of_interest,
       region: profile.region,
