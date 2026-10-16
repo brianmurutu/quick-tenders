@@ -253,23 +253,6 @@ export function SignupForm({ initialError }: { initialError?: string }) {
         </div>
       ) : null}
 
-      <TurnstileWidget
-        action="google_auth"
-        onToken={handleCaptchaToken}
-        resetVersion={captchaResetVersion}
-      />
-
-      <GoogleAuthButton
-        flow="signup"
-        captchaToken={captchaToken}
-        resetCaptcha={resetCaptcha}
-      />
-      <div className="flex items-center gap-3 text-xs text-slate-400" aria-hidden="true">
-        <span className="h-px flex-1 bg-slate-200" />
-        <span>or sign up with your company email</span>
-        <span className="h-px flex-1 bg-slate-200" />
-      </div>
-
       <Input
         id={`${formId}-full-name`}
         label="Your name"
@@ -284,7 +267,7 @@ export function SignupForm({ initialError }: { initialError?: string }) {
       <Input
         id={`${formId}-email`}
         label="Company email"
-        helperText="Consumer email providers are not accepted, because the account is tied to your company domain."
+        helperText="Use a company email for password signup. Personal Google accounts can create a separate workspace with Continue with Google."
         type="email"
         name="email"
         autoComplete="email"
@@ -349,34 +332,61 @@ export function SignupForm({ initialError }: { initialError?: string }) {
 
         <p id={sectorsHintId} className="ui-helper">
           Pick between 1 and {MAX_SECTORS}. Narrower profiles match better than
-          broad ones. Selected {selectedSectors} of {MAX_SECTORS}.
+          broad ones.
         </p>
 
-        <div className="checkbox-chip-grid">
-          {SECTORS.map((sector) => {
-            const checked = values.sectors_of_interest.includes(sector)
-            const atLimit = !checked && selectedSectors >= MAX_SECTORS
+        <details className="mt-3">
+          <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-300 bg-white px-3.5 py-2.5 font-semibold text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">
+            <span>Choose sectors</span>
+            <span className="text-sm font-normal text-slate-600">
+              {selectedSectors} of {MAX_SECTORS} selected
+            </span>
+          </summary>
+          <div className="mt-3 max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-4">
+            <div className="checkbox-chip-grid">
+              {SECTORS.map((sector) => {
+                const checked = values.sectors_of_interest.includes(sector)
+                const atLimit = !checked && selectedSectors >= MAX_SECTORS
 
-            return (
-              <CheckboxChip
-                key={sector}
-                name="sectors_of_interest"
-                value={sector}
-                checked={checked}
-                disabled={atLimit}
-                onChange={() => toggleSector(sector)}
-              >
-                {sector}
-              </CheckboxChip>
-            )
-          })}
-        </div>
+                return (
+                  <CheckboxChip
+                    key={sector}
+                    name="sectors_of_interest"
+                    value={sector}
+                    checked={checked}
+                    disabled={atLimit}
+                    onChange={() => toggleSector(sector)}
+                  >
+                    {sector}
+                  </CheckboxChip>
+                )
+              })}
+            </div>
+          </div>
+        </details>
 
         <p className="ui-helper">
           You will add your county and company size on the next screen, and you can
           change any of this later.
         </p>
       </fieldset>
+
+      <TurnstileWidget
+        action="google_auth"
+        onToken={handleCaptchaToken}
+        resetVersion={captchaResetVersion}
+      />
+
+      <GoogleAuthButton
+        flow="signup"
+        captchaToken={captchaToken}
+        resetCaptcha={resetCaptcha}
+      />
+      <div className="flex items-center gap-3 text-xs text-slate-400" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span>or sign up with your company email</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
 
       <Button
         type="submit"

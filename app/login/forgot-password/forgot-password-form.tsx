@@ -95,15 +95,9 @@ export function ForgotPasswordForm() {
         </div>
       ) : null}
 
-      <TurnstileWidget
-        action="password_reset"
-        onToken={setCaptchaToken}
-        resetVersion={captchaResetVersion}
-      />
-
       <div>
         <label htmlFor={id} className="block text-sm font-semibold text-slate-900">
-          Company email
+          Email address
         </label>
         <div className="mt-2">
           <input
@@ -129,6 +123,12 @@ export function ForgotPasswordForm() {
           </p>
         ) : null}
       </div>
+
+      <TurnstileWidget
+        action="password_reset"
+        onToken={setCaptchaToken}
+        resetVersion={captchaResetVersion}
+      />
 
       <button
         type="submit"

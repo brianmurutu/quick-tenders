@@ -18,6 +18,7 @@ import {
   validateSignUp,
   type SignUpInput,
 } from '@/lib/signup'
+import { googleConsumerWorkspaceDomain } from '@/lib/google-workspace'
 
 const valid: SignUpInput = {
   fullName: 'Brian Murutu',
@@ -37,6 +38,22 @@ describe('emailDomain', () => {
     assert.equal(emailDomain('brian'), null)
     assert.equal(emailDomain('brian@localhost'), null)
     assert.equal(emailDomain('a@b@c.com'), null)
+  })
+})
+
+describe('googleConsumerWorkspaceDomain', () => {
+  it('creates a stable, unique internal company key per Google user', () => {
+    const first = '00000000-0000-4000-8000-000000000001'
+    const second = '00000000-0000-4000-8000-000000000002'
+
+    assert.equal(
+      googleConsumerWorkspaceDomain(first),
+      'google-00000000000040008000000000000001.oauth.invalid',
+    )
+    assert.notEqual(
+      googleConsumerWorkspaceDomain(first),
+      googleConsumerWorkspaceDomain(second),
+    )
   })
 })
 

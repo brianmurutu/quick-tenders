@@ -15,7 +15,7 @@ const TIMEOUT_MS = 20_000
 // Configuration helpers
 // ---------------------------------------------------------------------------
 
-export type SubscriptionPlanId = 'starter' | 'pro'
+export type SubscriptionPlanId = 'pro'
 
 export type SubscriptionPlan = {
   id: SubscriptionPlanId
@@ -29,24 +29,9 @@ export type SubscriptionPlan = {
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    id: 'starter',
-    name: 'Quick Tenders Starter (Demo)',
-    amountKes: 1,
-    interval: 'month',
-    badge: 'Presentation / Test',
-    description: 'Perfect for testing and live demonstration.',
-    features: [
-      'Continuous tender monitoring across all sources',
-      'AI-scored matches against your company profile',
-      'Standard bid document drafts',
-      'Email notifications for new matches',
-      'Cancel any time',
-    ],
-  },
-  {
     id: 'pro',
     name: 'Quick Tenders Pro',
-    amountKes: 2000,
+    amountKes: 3499,
     interval: 'month',
     badge: 'Recommended',
     description: 'Full automated tender intelligence & drafting suite.',
@@ -82,11 +67,11 @@ export function paystackPublicKey(): string {
   return process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY?.trim() ?? ''
 }
 
-/** Default monthly plan amount in KES (defaults to 2000 if not set). */
+/** Default monthly plan amount in KES. */
 export function paystackPlanAmountKes(): number {
   const raw = process.env.PAYSTACK_PLAN_AMOUNT_KES?.trim()
   const parsed = raw ? parseInt(raw, 10) : NaN
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2000
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 3499
 }
 
 export function paystackPlanCode(): string {

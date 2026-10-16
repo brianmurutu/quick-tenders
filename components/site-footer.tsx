@@ -70,7 +70,7 @@ export function SiteFooter() {
             <p>
               A project by{' '}
               <a
-                href="https://starlettechnogies.com"
+                href="https://starlettechnologies.com/"
                 target="_blank"
                 rel="noopener noreferrer"
               >

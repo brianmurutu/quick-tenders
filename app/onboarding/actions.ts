@@ -123,7 +123,7 @@ export async function saveCompanyProfile(
   void notifyAdminOfSignup({
     fullName: user.user_metadata?.full_name ?? user.email ?? 'Representative',
     email: user.email ?? '',
-    companyName: user.user_metadata?.company_name ?? 'Company',
+    companyName: trimmedCompanyName,
     industry: profile.industry,
     sectors: profile.sectors_of_interest,
   })

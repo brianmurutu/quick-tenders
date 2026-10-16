@@ -108,7 +108,7 @@ export default async function UpgradePage({
             <PaymentForm
               companyEmail={user.email ?? ''}
               paystackPublicKey={publicKey}
-              defaultPlanId="starter"
+              defaultPlanId="pro"
             />
           ) : (
             // Fallback when Paystack is not yet configured (e.g. dev without keys).

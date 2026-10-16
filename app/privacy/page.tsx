@@ -43,7 +43,7 @@ export default function PrivacyPage() {
         <Bullets
           items={[
             'Account details you give us at signup: your name, your work email address, your company name, industry, region and company size.',
-            'The company domain, derived from the email address you confirm. It identifies the account and is what keeps one company separate from another.',
+            'For company-email signups, the company domain is derived from the confirmed email address and separates that company workspace. Personal Google signups receive a unique internal workspace identifier instead.',
             'Tender activity: the tenders matched to your company, the scores and deadlines attached to them, their status, and the documents drafted for them.',
             'Technical records created by using the service: request logs, approximate location from IP address, browser and device information.',
           ]}

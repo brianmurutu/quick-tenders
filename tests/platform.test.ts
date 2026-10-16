@@ -311,6 +311,11 @@ describe('isCronAuthorised', () => {
 // ---------------------------------------------------------------------------
 describe('Paystack helpers', () => {
   it('only accepts an amount that matches a real plan', () => {
+    assert.deepEqual(
+      SUBSCRIPTION_PLANS.map(({ id, amountKes }) => ({ id, amountKes })),
+      [{ id: 'pro', amountKes: 3499 }],
+    )
+
     for (const plan of SUBSCRIPTION_PLANS) {
       assert.ok(isValidPlanAmountKes(plan.amountKes))
       assert.ok(isValidPlanAmountMinor(plan.amountKes * 100))
@@ -330,13 +335,13 @@ describe('Paystack helpers', () => {
 
   it('defaults the plan amount when the env var is missing or nonsense', () => {
     withEnv({ PAYSTACK_PLAN_AMOUNT_KES: undefined }, () =>
-      assert.equal(paystackPlanAmountKes(), 2000),
+      assert.equal(paystackPlanAmountKes(), 3499),
     )
     withEnv({ PAYSTACK_PLAN_AMOUNT_KES: 'free' }, () =>
-      assert.equal(paystackPlanAmountKes(), 2000),
+      assert.equal(paystackPlanAmountKes(), 3499),
     )
     withEnv({ PAYSTACK_PLAN_AMOUNT_KES: '-5' }, () =>
-      assert.equal(paystackPlanAmountKes(), 2000),
+      assert.equal(paystackPlanAmountKes(), 3499),
     )
     withEnv({ PAYSTACK_PLAN_AMOUNT_KES: '3500' }, () =>
       assert.equal(paystackPlanAmountKes(), 3500),

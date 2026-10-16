@@ -35,31 +35,32 @@ export default function SecurityPage() {
 
       <Section heading="Accounts and sign in">
         <p>
-          Authentication is handled by Supabase Auth. Signing up requires
-          confirming a company email address, and the confirmation link is what
-          establishes the account.
+          Authentication is handled by Supabase Auth. Company-email signups are
+          confirmed by email; Google signups use the verified identity returned
+          by Google.
         </p>
         <Bullets
           items={[
-            'One company gets one account, keyed on the email domain.',
-            'Consumer and disposable email providers are rejected at signup, so a shared provider domain cannot be claimed as a company.',
+            'Company-email workspaces are keyed on the email domain.',
+            'Personal Google accounts on consumer domains receive unique workspace identifiers; the shared provider domain is not claimed.',
+            'Consumer and disposable email providers remain blocked for password-based signup.',
             'Session tokens are held in cookies and refreshed server side on each request.',
           ]}
         />
       </Section>
 
-      <Section heading="The company domain cannot be self-declared">
+      <Section heading="Workspace identifiers cannot be self-declared">
         <p>
-          When an account is created, the company domain is taken from the email
-          address that was actually confirmed. It is never read from a form field
-          or any other client input, so a user cannot register a domain they do not
-          control by editing a request.
+          For company-email accounts, the company domain comes from the verified
+          email address. For personal Google accounts, the workspace identifier is
+          derived from the authenticated user ID. Neither value is read from a
+          client-submitted field.
         </p>
         <p>
           Account creation runs as a single database operation that either creates
-          the company and its representative together or does neither, and a second
-          attempt on an existing domain is rejected rather than quietly joining the
-          existing company.
+          the workspace and its representative together or does neither. A second
+          company-email signup on an existing company domain is rejected rather
+          than quietly joining that company.
         </p>
       </Section>
 

@@ -56,12 +56,13 @@ export default function AboutPage() {
         </p>
       </Section>
 
-      <Section heading="One account per company">
+      <Section heading="Company and personal Google workspaces">
         <p>
-          An account is tied to a company email domain, so one company gets one
-          account and there is no seat management to administer. A single
-          representative can run the whole pipeline, from the first match through
-          to submission.
+          Company-email accounts are tied to the company domain, so one company
+          gets one account and there is no seat management to administer. Personal
+          Google accounts create separate workspaces instead of sharing a
+          consumer email domain. A single representative can run the whole
+          pipeline, from the first match through to submission.
         </p>
         <p>
           Every new account starts with a 3-day free trial. If you want the

@@ -377,7 +377,7 @@ function Pricing() {
           <article className="plan-card plan-pro">
             <h3>Pro</h3>
             <p className="plan-price">
-              <span>KES 2,000</span>
+              <span>KES 3,499</span>
               <span>per month</span>
             </p>
             <ul>

@@ -102,24 +102,6 @@ export function LoginForm({
         </div>
       ) : null}
 
-      <TurnstileWidget
-        action="google_auth"
-        onToken={setCaptchaToken}
-        resetVersion={captchaResetVersion}
-      />
-
-      <GoogleAuthButton
-        flow="signin"
-        next={next}
-        captchaToken={captchaToken}
-        resetCaptcha={resetCaptcha}
-      />
-      <div className="flex items-center gap-3 text-xs text-slate-400" aria-hidden="true">
-        <span className="h-px flex-1 bg-slate-200" />
-        <span>or sign in with email</span>
-        <span className="h-px flex-1 bg-slate-200" />
-      </div>
-
       {formError ? (
         <div
           role="alert"
@@ -131,7 +113,7 @@ export function LoginForm({
 
       <Input
         id={`${formId}-email`}
-        label="Company email"
+        label="Email address"
         error={fieldErrors.email}
         type="email"
         name="email"
@@ -151,6 +133,24 @@ export function LoginForm({
         value={values.password}
         onChange={(event) => update('password', event.target.value)}
       />
+
+      <TurnstileWidget
+        action="google_auth"
+        onToken={setCaptchaToken}
+        resetVersion={captchaResetVersion}
+      />
+
+      <GoogleAuthButton
+        flow="signin"
+        next={next}
+        captchaToken={captchaToken}
+        resetCaptcha={resetCaptcha}
+      />
+      <div className="flex items-center gap-3 text-xs text-slate-400" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span>or sign in with email</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
 
       <Button
         type="submit"

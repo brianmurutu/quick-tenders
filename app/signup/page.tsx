@@ -10,11 +10,11 @@ import { SignupForm } from './signup-form'
 export const metadata: Metadata = {
   title: 'Get Demo | Quick Tenders',
   description:
-    'Start a 3-day Quick Tenders trial with your company email. One account per company.',
+    'Start a 3-day Quick Tenders trial with a company email or Google account.',
 }
 
 const steps = [
-  'Confirm your company email. That address is what ties the account to your company.',
+  'Confirm your company email or continue with Google to create your workspace.',
   'The agent starts matching tenders against the profile you give us here.',
   'Matches arrive with a drafted response pack and the deadline attached.',
   'You proofread, change what you want, and submit.',
@@ -42,8 +42,8 @@ export default function SignupPage({
             Start your 3-day trial
           </h1>
           <p className="page-intro">
-            One account per company, set up with your company email. Tell us what
-            you bid on and the agent starts matching.
+            Create a workspace with your company email or a personal Google account.
+            Tell us what you bid on and the agent starts matching.
           </p>
 
           <div className="mt-10">
@@ -70,12 +70,12 @@ export default function SignupPage({
 
           <Card className="auth-aside auth-company-note">
             <h2>
-              One account per company
+              Company email or Google
             </h2>
             <p>
-              Accounts are keyed on your email domain, so a company cannot end up
-              with two. If a colleague has already signed up, ask them for access
-              rather than starting again.
+              Company email signups are grouped by company domain. Personal
+              Google accounts get their own workspace, so you can start without
+              a company-domain email.
             </p>
           </Card>
         </aside>

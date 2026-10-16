@@ -46,9 +46,9 @@ export default async function LoginPage({
       <main className="page-shell-main auth-layout">
         <div className="auth-form-column">
           <Link href="/" className="form-link">Back to home</Link>
-          <h1 className="page-title">Sign in</h1>
-          <p className="page-intro">
-            Use the company email address your account was registered with.
+          <h1 className="page-title text-balance">Sign in</h1>
+          <p className="page-intro text-pretty">
+            Sign in with Google or use the email address and password linked to your account.
           </p>
 
           <div className="mt-10">
@@ -67,19 +67,45 @@ export default async function LoginPage({
           </p>
         </div>
 
-        <aside className="auth-aside">
-            <h2>
-              One account per company
-            </h2>
-            <p>
-              Accounts are keyed on your email domain, so there is one per company
-              rather than one per person. If a colleague set yours up, ask them for
-              access rather than signing up again.
+        <aside className="space-y-4">
+          <div className="auth-aside">
+            <h2 className="text-balance">Sign in your way</h2>
+            <p className="text-pretty">
+              Continue with Google or enter the email address linked to your
+              Quick Tenders account. If you use Google, choose the same Google
+              account you used when signing up.
             </p>
-            <p>
-              Signing up needs a company email address. Consumer providers are not
-              accepted.
-            </p>
+          </div>
+
+          <div className="hidden space-y-4 lg:grid">
+            <section className="rounded-md border border-slate-200 bg-white p-5">
+              <h2 className="text-balance text-base font-semibold text-slate-900">
+                Opportunities matched to your business
+              </h2>
+              <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600">
+                Tender matches use your company profile, sectors, location and
+                company size to help surface relevant opportunities.
+              </p>
+            </section>
+            <section className="rounded-md border border-slate-200 bg-white p-5">
+              <h2 className="text-balance text-base font-semibold text-slate-900">
+                Bid drafts, ready for your review
+              </h2>
+              <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600">
+                Review and complete the generated documents against the tender
+                requirements. Your team remains responsible for the final bid.
+              </p>
+            </section>
+            <section className="rounded-md border border-slate-200 bg-white p-5">
+              <h2 className="text-balance text-base font-semibold text-slate-900">
+                You stay in control
+              </h2>
+              <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600">
+                Quick Tenders helps with discovery and drafting; it does not
+                submit bids on your behalf.
+              </p>
+            </section>
+          </div>
         </aside>
       </main>
     </PageShell>

@@ -62,7 +62,7 @@ function formatKes(amount: number): string {
 export function PaymentForm({
   companyEmail,
   paystackPublicKey,
-  defaultPlanId = 'starter',
+  defaultPlanId = 'pro',
 }: {
   companyEmail: string
   paystackPublicKey: string

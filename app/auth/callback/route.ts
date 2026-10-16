@@ -129,5 +129,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(next, url.origin))
+  const destination = flow === 'signin' && needsOnboarding ? '/onboarding' : next
+  return NextResponse.redirect(new URL(destination, url.origin))
 }

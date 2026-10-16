@@ -24,23 +24,24 @@ export default function TermsPage() {
       <Section heading="Who can use the service">
         <p>
           Quick Tenders is for companies bidding on tenders, and an account is
-          registered to a company rather than to an individual. To sign up you
-          need a company email address, and by signing up you confirm you are
-          authorised to accept these terms for that company.
+          used to prepare bids on behalf of a company. You may register with a
+          company email address or with a Google account. By signing up, you
+          confirm you are authorised to use the service for your workspace.
         </p>
         <p>
-          One company gets one account, identified by its email domain. Addresses
-          from consumer and disposable email providers cannot be used to register,
-          because a shared provider domain does not identify a company.
+          Company-email workspaces are identified by the email domain, with one
+          workspace per company domain. Personal Google accounts receive a
+          separate workspace identifier; consumer email domains are still not
+          accepted for password-based signup.
         </p>
       </Section>
 
       <Section heading="The free trial">
         <p>
           A new account starts with a free trial lasting three days from the moment
-          it is created. The trial is per company, not per person, so a second
-          person from the same company cannot start a fresh trial on the same
-          domain.
+          it is created. For company-email workspaces, the trial is per company
+          domain. A personal Google account receives a separate workspace and
+          trial.
         </p>
         <p>
           When the trial ends, access to matching and drafting stops unless the
