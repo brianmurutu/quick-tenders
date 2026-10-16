@@ -6,13 +6,27 @@
  * into the page bundle. lib/tender-drafting.ts re-exports these for the jobs.
  */
 
-export type DraftDocumentType = 'cover_letter' | 'technical_proposal'
+export type DraftDocumentType =
+  | 'cover_letter'
+  | 'form_of_tender'
+  | 'technical_proposal'
+  | 'priced_bill_of_quantities'
+  | 'compliance_documents'
 
-export const DOCUMENT_TYPES: DraftDocumentType[] = ['cover_letter', 'technical_proposal']
+export const DOCUMENT_TYPES: DraftDocumentType[] = [
+  'cover_letter',
+  'form_of_tender',
+  'technical_proposal',
+  'priced_bill_of_quantities',
+  'compliance_documents',
+]
 
 export const DOCUMENT_LABELS: Record<DraftDocumentType, string> = {
   cover_letter: 'Cover letter',
-  technical_proposal: 'Technical proposal skeleton',
+  form_of_tender: 'Form of tender',
+  technical_proposal: 'Technical proposal',
+  priced_bill_of_quantities: 'Priced bill of quantities',
+  compliance_documents: 'Compliance documents checklist',
 }
 
 export const STORAGE_BUCKET = 'tender-documents'

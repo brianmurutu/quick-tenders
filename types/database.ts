@@ -142,6 +142,7 @@ export type Database = {
           source_url: string | null
           deadline: string | null
           summary: string | null
+          source_description: string | null
           match_score: number | null
           procuring_entity: string | null
           notified_at: string | null
@@ -155,6 +156,7 @@ export type Database = {
           source_url?: string | null
           deadline?: string | null
           summary?: string | null
+          source_description?: string | null
           match_score?: number | null
           procuring_entity?: string | null
           notified_at?: string | null
@@ -168,6 +170,7 @@ export type Database = {
           source_url?: string | null
           deadline?: string | null
           summary?: string | null
+          source_description?: string | null
           match_score?: number | null
           procuring_entity?: string | null
           notified_at?: string | null

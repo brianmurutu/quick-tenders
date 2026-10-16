@@ -10,8 +10,8 @@
  * tenders_matched rows with no documents yet, for four reasons:
  *
  *   1. Cost per row. Discovery scores 20 tenders in one Grok call. Drafting
- *      is two calls, two DOCX builds, two uploads and an email PER MATCH. Bolted
- *      onto discovery, one run with 30 new matches becomes 60 sequential model
+ *      is one call, one DOCX build and one upload per document PER MATCH. Bolted
+ *      onto discovery, one run with 30 new matches becomes 150 model
  *      calls and blows the function timeout, taking the matching with it.
  *   2. Failure isolation. Resend being down should not roll back or fail a
  *      matching run. Here it just leaves notified_at null, and the next run
@@ -36,6 +36,7 @@ import { aiModel, type AiClient } from '@/lib/ai'
 import {
   DOCUMENT_LABELS,
   DOCUMENT_TYPES,
+  isDraftDocumentType,
   STORAGE_BUCKET,
   storagePath,
   type DraftDocumentType,
@@ -52,6 +53,7 @@ export type PendingDraft = {
   source_url: string | null
   deadline: string | null
   summary: string | null
+  source_description: string | null
   match_score: number | null
   procuring_entity: string | null
   notified_at: string | null
@@ -95,6 +97,7 @@ function toDraftContext(pending: PendingDraft): DraftContext {
   return {
     tenderTitle: pending.title ?? 'Untitled tender',
     tenderSummary: pending.summary,
+    tenderDescription: pending.source_description,
     procuringEntity: pending.procuring_entity,
     deadline: pending.deadline,
     sourceUrl: pending.source_url,
@@ -103,6 +106,8 @@ function toDraftContext(pending: PendingDraft): DraftContext {
     sectorsOfInterest: pending.sectors_of_interest,
     region: pending.region,
     companySize: pending.company_size,
+    representativeName: pending.representative_name,
+    representativeEmail: pending.representative_emails?.[0] ?? null,
   }
 }
 
@@ -177,9 +182,9 @@ export async function runDrafting(
         documentsCreated: [],
         emailed: false,
         recipients: row.representative_emails?.length ?? 0,
-        skipped: `Dry run. Would draft ${
-          row.document_count === 0 ? DOCUMENT_TYPES.length : 0
-        } document(s) and ${row.notified_at ? 'not email' : 'email'}.`,
+        skipped: `Dry run. Would ensure all ${DOCUMENT_TYPES.length} documents are present and ${
+          row.notified_at ? 'not email' : 'email'
+        }.`,
         errors: [],
       })
     }
@@ -234,9 +239,27 @@ async function processTender(
 
   const context = toDraftContext(pending)
 
-  if (pending.document_count === 0) {
-    // Draft document types in parallel to cut generation time in half
-    const draftTasks = DOCUMENT_TYPES.map(async (docType) => {
+  const { data: existingDocuments, error: documentsError } = await supabase
+    .from('tender_documents')
+    .select('doc_type')
+    .eq('tender_id', pending.tender_id)
+
+  if (documentsError) {
+    result.errors.push(`Could not load existing documents: ${documentsError.message}`)
+    result.skipped = 'Document status could not be verified'
+
+    return result
+  }
+
+  const existingTypes = new Set(
+    (existingDocuments ?? [])
+      .map((document) => document.doc_type)
+      .filter(isDraftDocumentType),
+  )
+  const missingTypes = DOCUMENT_TYPES.filter((docType) => !existingTypes.has(docType))
+
+  if (missingTypes.length > 0) {
+    const draftTasks = missingTypes.map(async (docType) => {
       try {
         const drafted = await draftDocument(grok, docType, context)
 
@@ -289,25 +312,24 @@ async function processTender(
         result.errors.push(res.error)
       } else if ('success' in res && res.success) {
         result.documentsCreated.push(res.docType)
+        existingTypes.add(res.docType)
       }
     }
   }
 
-  // Do not announce a match whose documents all failed. Left unnotified, so the
-  // next run retries the drafting rather than sending an email with nothing
-  // behind the link.
-  const hasDocuments =
-    pending.document_count > 0 || result.documentsCreated.length > 0
+  const hasCompleteDocumentPack = DOCUMENT_TYPES.every((docType) =>
+    existingTypes.has(docType),
+  )
 
-  if (pending.notified_at) return result
-
-  if (!hasDocuments) {
-    result.skipped = 'No documents yet, so the notification is held for the next run'
+  if (!hasCompleteDocumentPack) {
+    result.skipped = 'Document pack is incomplete; remaining documents will be retried'
 
     return result
   }
 
-  // Stamp notified_at once documents are ready so the queue knows this tender is drafted
+  if (pending.notified_at) return result
+
+  // Stamp only after the complete pack is stored so the queue retries partial failures.
   const { error: stampError } = await supabase
     .from('tenders_matched')
     .update({ notified_at: new Date().toISOString() })

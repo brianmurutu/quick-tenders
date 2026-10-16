@@ -150,7 +150,7 @@ export function AutomationTrigger({
 
   function handleRunDrafting() {
     setActiveAction('drafting')
-    setStatusMessage('Generating Word (.docx) technical proposals and bid documents with AI...')
+    setStatusMessage('Generating the Word (.docx) bid document pack with AI...')
     setLastSummary(null)
 
     startTransition(async () => {
@@ -195,7 +195,7 @@ export function AutomationTrigger({
       try {
         setTimeout(() => {
           setActiveStep(2)
-          setStatusMessage('2/3 Drafting compliant proposals and bid documents with AI...')
+          setStatusMessage('2/3 Drafting the bid document pack with AI...')
         }, 2000)
 
         const res = await triggerFullPipelineAction({
@@ -287,7 +287,8 @@ export function AutomationTrigger({
               </span>
             </div>
             <p className="mt-0.5 text-xs text-slate-600">
-              Trigger on-demand runs with custom sectors, automated AI scoring, proposal drafting, and immediate Email & SMS notifications.
+              Trigger on-demand runs with custom sectors, automated AI scoring,
+              bid pack drafting, and immediate Email & SMS notifications.
             </p>
           </div>
         </div>
@@ -487,7 +488,7 @@ export function AutomationTrigger({
             )}
           </button>
 
-          {/* Auto-Draft Proposals */}
+          {/* Auto-Draft Bid Pack */}
           <button
             type="button"
             onClick={handleRunDrafting}
@@ -502,7 +503,7 @@ export function AutomationTrigger({
             ) : (
               <>
                 <DocumentTextIcon />
-                <span>Auto-Draft Proposals (.docx)</span>
+                <span>Auto-Draft Bid Pack (.docx)</span>
               </>
             )}
           </button>

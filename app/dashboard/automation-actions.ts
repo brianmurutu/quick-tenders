@@ -189,8 +189,8 @@ export async function triggerDraftingAction(): Promise<DraftingActionResult> {
       emailsSent,
       message:
         documentsCreated > 0
-          ? `Drafted ${documentsCreated} compliance document${documentsCreated === 1 ? '' : 's'} (.docx) with AI.`
-          : 'All matched tenders already have up-to-date drafted documents.',
+          ? `Drafted ${documentsCreated} bid pack document${documentsCreated === 1 ? '' : 's'} (.docx) with AI.`
+          : 'All matched tenders already have a complete drafted bid pack.',
     }
   } catch (err) {
     return {
@@ -220,7 +220,7 @@ export async function triggerFullPipelineAction(
     matchedCount: disc.matchedCount,
     insertedCount: disc.insertedCount,
     documentsCreated: draft.documentsCreated,
-    message: `Full automation complete: Discovered ${disc.tendersFetched} tenders, matched ${disc.matchedCount}, and drafted ${draft.documentsCreated} Word (.docx) documents.`,
+    message: `Full automation complete: Discovered ${disc.tendersFetched} tenders, matched ${disc.matchedCount}, and drafted ${draft.documentsCreated} Word (.docx) bid pack documents.`,
   }
 }
 

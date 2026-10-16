@@ -345,6 +345,7 @@ async function runForCompany(
           source_url: match.tender.source_url,
           deadline: match.tender.deadline,
           summary: match.summary,
+          source_description: match.tender.description,
           match_score: match.match_score,
           procuring_entity: match.tender.procuring_entity,
           status: 'new' as const,
