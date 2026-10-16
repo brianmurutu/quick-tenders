@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, Public_Sans } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 
 import { getSiteUrl } from '@/lib/env'
 import './globals.css'
@@ -65,6 +66,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${bricolage.variable} ${publicSans.variable} antialiased`}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
