@@ -5,6 +5,7 @@ import { Logo } from '@/components/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { signOutAction } from '@/lib/auth-actions'
 import { createClient } from '@/lib/supabase/server'
+import { noIndexMetadata } from '@/lib/seo'
 
 import { AdminNav } from './_components/admin-nav'
 
@@ -12,6 +13,8 @@ import { AdminNav } from './_components/admin-nav'
  * Never prerender /admin: it is per-user gated data.
  */
 export const dynamic = 'force-dynamic'
+
+export const metadata = noIndexMetadata
 
 /**
  * Admin section layout.

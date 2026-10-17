@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { trialState } from '@/lib/trial'
 import { createClient } from '@/lib/supabase/server'
+import { noIndexMetadata } from '@/lib/seo'
 
 /**
  * Never prerender anything under /dashboard. The content is per representative
@@ -10,6 +11,8 @@ import { createClient } from '@/lib/supabase/server'
  * working without Supabase credentials present.
  */
 export const dynamic = 'force-dynamic'
+
+export const metadata = noIndexMetadata
 
 /**
  * The trial gate for everything under /dashboard.

@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import {
@@ -7,18 +6,21 @@ import {
   DraftNotice,
   Section,
 } from '@/components/content-page'
+import { publicPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Privacy | Quick Tenders',
+export const metadata = publicPageMetadata({
+  title: 'Privacy',
   description:
     'What Quick Tenders collects, why, where it is stored, and how one company is kept separate from another.',
-}
+  path: '/privacy',
+})
 
 export default function PrivacyPage() {
   return (
     <ContentPage
       eyebrow="Legal"
       title="Privacy policy"
+      breadcrumbPath="/privacy"
       intro="This policy describes what Quick Tenders collects when your company uses the service, why it is collected, and what you can ask us to do with it."
       updated="26 August 2026"
       notice={

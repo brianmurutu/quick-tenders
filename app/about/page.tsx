@@ -1,19 +1,21 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { Bullets, ContentPage, Section } from '@/components/content-page'
+import { publicPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'About | Quick Tenders',
+export const metadata = publicPageMetadata({
+  title: 'About',
   description:
     'Why Quick Tenders exists: tenders close on fixed dates, and the response pack is the reason good opportunities go unanswered.',
-}
+  path: '/about',
+})
 
 export default function AboutPage() {
   return (
     <ContentPage
       eyebrow="About"
       title="Built for the companies doing the bidding"
+      breadcrumbPath="/about"
       intro="The hard part of tendering is rarely the work itself. It is finding the tender while there is still time to respond, then finding the days to write the response."
     >
       <Section heading="The problem we started from">

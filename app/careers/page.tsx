@@ -1,17 +1,18 @@
-import type { Metadata } from 'next'
-
 import { Bullets, ContactBlock, ContentPage, Section } from '@/components/content-page'
+import { publicPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Careers | Quick Tenders',
+export const metadata = publicPageMetadata({
+  title: 'Careers',
   description: 'Open roles at Quick Tenders, and how to apply speculatively when there are none.',
-}
+  path: '/careers',
+})
 
 export default function CareersPage() {
   return (
     <ContentPage
       eyebrow="Careers"
       title="Work on Quick Tenders"
+      breadcrumbPath="/careers"
       intro="Quick Tenders is a small product with a narrow job: find the tender, draft the bid, keep a company from missing a deadline. That focus shapes what the work looks like."
     >
       <Section heading="Open roles">

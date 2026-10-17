@@ -6,11 +6,13 @@ import { AppHeader } from '@/components/app-header'
 import { formatTrialDate, trialState } from '@/lib/trial'
 import { createClient } from '@/lib/supabase/server'
 import { paystackConfigured, paystackPublicKey } from '@/lib/paystack'
+import { noIndexMetadata } from '@/lib/seo'
 
 import { PaymentForm } from './payment-form'
 
 export const metadata: Metadata = {
-  title: 'Upgrade | Quick Tenders',
+  ...noIndexMetadata,
+  title: 'Upgrade',
   description: 'Move your Quick Tenders account onto a paid plan.',
 }
 

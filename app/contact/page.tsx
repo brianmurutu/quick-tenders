@@ -1,18 +1,20 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { ContactBlock, ContentPage, Section } from '@/components/content-page'
+import { publicPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Contact | Quick Tenders',
+export const metadata = publicPageMetadata({
+  title: 'Contact',
   description: 'How to reach Quick Tenders about demos, support or security.',
-}
+  path: '/contact',
+})
 
 export default function ContactPage() {
   return (
     <ContentPage
       eyebrow="Contact"
       title="Get in touch with Quick Tenders Kenya"
+      breadcrumbPath="/contact"
       intro="Pick the route that matches what you need. Including your company email domain in your message helps us locate your account and active bids immediately."
     >
       <Section heading="Sales and demos">

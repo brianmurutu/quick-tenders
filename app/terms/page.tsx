@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import {
@@ -6,18 +5,21 @@ import {
   ContentPage,
   Section,
 } from '@/components/content-page'
+import { publicPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Terms | Quick Tenders',
+export const metadata = publicPageMetadata({
+  title: 'Terms',
   description:
     'The terms on which companies use Quick Tenders, including the free trial and what drafted documents are and are not.',
-}
+  path: '/terms',
+})
 
 export default function TermsPage() {
   return (
     <ContentPage
       eyebrow="Legal"
       title="Terms of service"
+      breadcrumbPath="/terms"
       intro="These terms cover the use of Quick Tenders by a company and by the representative who signs up on its behalf."
       updated="26 August 2026"
     >

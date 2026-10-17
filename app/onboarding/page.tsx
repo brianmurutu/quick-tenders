@@ -12,11 +12,13 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { formatTrialDate, trialState } from '@/lib/trial'
 import { ensureUserOnboarded } from '@/lib/onboarding-recovery'
+import { noIndexMetadata } from '@/lib/seo'
 
 import { OnboardingForm } from './onboarding-form'
 
 export const metadata: Metadata = {
-  title: 'Onboarding | Quick Tenders',
+  ...noIndexMetadata,
+  title: 'Onboarding',
   description: 'Tell Quick Tenders what your company bids on.',
 }
 

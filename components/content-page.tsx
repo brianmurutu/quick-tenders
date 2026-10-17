@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { Card, PageShell, Prose } from '@/components/ui'
@@ -8,6 +9,7 @@ import { Card, PageShell, Prose } from '@/components/ui'
 export function ContentPage({
   eyebrow,
   title,
+  breadcrumbPath,
   intro,
   notice,
   updated,
@@ -15,6 +17,7 @@ export function ContentPage({
 }: {
   eyebrow: string
   title: string
+  breadcrumbPath: string
   intro?: ReactNode
   notice?: ReactNode
   updated?: string
@@ -26,25 +29,27 @@ export function ContentPage({
 
       <main className="page-shell-main">
         <Prose>
-        <p className="page-eyebrow">
-          {eyebrow}
-        </p>
+          <Breadcrumbs currentPage={title} currentPath={breadcrumbPath} />
 
-        <h1 className="page-title">
-          {title}
-        </h1>
+          <p className="page-eyebrow">
+            {eyebrow}
+          </p>
 
-        {intro ? (
-          <div className="page-intro">{intro}</div>
-        ) : null}
+          <h1 className="page-title">
+            {title}
+          </h1>
 
-        {updated ? (
-          <p className="page-updated">Last updated {updated}.</p>
-        ) : null}
+          {intro ? (
+            <div className="page-intro">{intro}</div>
+          ) : null}
 
-        {notice ? <div className="page-notice">{notice}</div> : null}
+          {updated ? (
+            <p className="page-updated">Last updated {updated}.</p>
+          ) : null}
 
-        <div className="page-sections">{children}</div>
+          {notice ? <div className="page-notice">{notice}</div> : null}
+
+          <div className="page-sections">{children}</div>
         </Prose>
       </main>
 

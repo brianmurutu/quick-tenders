@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { SiteHeader } from '@/components/site-header'
 import { Card, PageShell } from '@/components/ui'
 import { CALLBACK_ERRORS } from '@/lib/signup'
+import { noIndexMetadata } from '@/lib/seo'
 
 import { SignupForm } from './signup-form'
 
 export const metadata: Metadata = {
-  title: 'Get Demo | Quick Tenders',
+  ...noIndexMetadata,
+  title: 'Get Demo',
   description:
     'Start a 3-day Quick Tenders trial with a company email or Google account.',
 }

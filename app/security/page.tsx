@@ -1,19 +1,21 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { Bullets, ContentPage, Section } from '@/components/content-page'
+import { publicPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Security | Quick Tenders',
+export const metadata = publicPageMetadata({
+  title: 'Security',
   description:
     'How Quick Tenders separates one company from another, how accounts are established, and what is not yet in place.',
-}
+  path: '/security',
+})
 
 export default function SecurityPage() {
   return (
     <ContentPage
       eyebrow="Security"
       title="How company data is kept apart"
+      breadcrumbPath="/security"
       intro="Tender activity is commercially sensitive, so this page describes what is actually in place today rather than what we intend to build. The last section is the part most security pages leave out."
     >
       <Section heading="Isolation is enforced in the database">

@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { noIndexMetadata } from '@/lib/seo'
+
 import { ResetPasswordForm } from './reset-form'
 
 export const metadata: Metadata = {
-  title: 'Set new password | Quick Tenders',
+  ...noIndexMetadata,
+  title: 'Set new password',
   description: 'Set a new password for your Quick Tenders account.',
 }
 

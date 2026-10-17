@@ -5,13 +5,15 @@ import { redirect } from 'next/navigation'
 import { SIGN_IN_REASONS } from '@/lib/signin'
 import { createClient } from '@/lib/supabase/server'
 import { safeRelativePath } from '@/lib/url'
+import { noIndexMetadata } from '@/lib/seo'
 import { SiteHeader } from '@/components/site-header'
 import { PageShell } from '@/components/ui'
 
 import { LoginForm } from './login-form'
 
 export const metadata: Metadata = {
-  title: 'Sign in | Quick Tenders',
+  ...noIndexMetadata,
+  title: 'Sign in',
   description: 'Sign in to Quick Tenders to see your matched tenders.',
 }
 

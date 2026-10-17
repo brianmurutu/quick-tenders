@@ -3,6 +3,15 @@ import Link from 'next/link'
 import { container } from '@/components/layout'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
+import { getSiteUrl } from '@/lib/env'
+import { publicPageMetadata } from '@/lib/seo'
+
+export const metadata = publicPageMetadata({
+  title: 'Tender Matching & Bid Drafting in Kenya',
+  description:
+    'Find public tenders across Kenya, match opportunities to your business, and get bid documents drafted for your representative to review and sign.',
+  path: '/',
+})
 
 const sources = [
   'PPIP',
@@ -66,21 +75,47 @@ const proFeatures = [
 ]
 
 export default function Home() {
+  const siteUrl = getSiteUrl()
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        name: 'Quick Tenders',
+        url: siteUrl,
+        logo: new URL('/logo-mark.svg', siteUrl).toString(),
+      },
+      {
+        '@type': 'WebSite',
+        name: 'Quick Tenders',
+        url: siteUrl,
+      },
+    ],
+  }
+
   return (
-    <div className="home-page">
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
-      <SiteHeader />
-      <main id="main">
-        <Hero />
-        <SourceStrip />
-        <HowItWorks />
-        <WhyQuickTenders />
-        <Pricing />
-      </main>
-      <SiteFooter />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+        }}
+      />
+      <div className="home-page">
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        <SiteHeader />
+        <main id="main">
+          <Hero />
+          <SourceStrip />
+          <HowItWorks />
+          <WhyQuickTenders />
+          <Pricing />
+        </main>
+        <SiteFooter />
+      </div>
+    </>
   )
 }
 
