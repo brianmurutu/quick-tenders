@@ -6,7 +6,9 @@ import { AppHeader } from '@/components/app-header'
 import { createClient } from '@/lib/supabase/server'
 import {
   TENDER_TABS,
+  countByBucket,
   deadlinePhrase,
+  filterByTab,
   formatDate,
   formatMatchScore,
   isUrgent,
@@ -30,6 +32,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 const PAGE_SIZE = 20
+const MAX_TENDERS = 500
 
 const BUCKET_STYLES: Record<TenderBucket, string> = {
   new: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
@@ -62,65 +65,9 @@ export default async function DashboardPage({
       : 1
   const today = isoToday()
 
-  const tenderSelection =
-    'id, title, procuring_entity, deadline, match_score, status'
-  let pageQuery = supabase
-    .from('tenders_matched')
-    .select(tenderSelection)
-    .order('deadline', { ascending: true, nullsFirst: false })
-    .order('match_score', { ascending: false, nullsFirst: false })
-    .order('id', { ascending: true })
-
-  if (tab === 'new') {
-    pageQuery = pageQuery
-      .eq('status', 'new')
-      .or(`deadline.is.null,deadline.gte.${today}`)
-  } else if (tab === 'reviewed') {
-    pageQuery = pageQuery
-      .eq('status', 'reviewed')
-      .or(`deadline.is.null,deadline.gte.${today}`)
-  } else if (tab === 'submitted') {
-    pageQuery = pageQuery.eq('status', 'submitted')
-  } else if (tab === 'expired') {
-    pageQuery = pageQuery.or(
-      `status.eq.expired,and(status.in.(new,reviewed),deadline.lt.${today})`,
-    )
-  }
-  pageQuery = pageQuery.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
-
-  const allCountQuery = supabase
-    .from('tenders_matched')
-    .select('id', { count: 'exact', head: true })
-  const newCountQuery = supabase
-    .from('tenders_matched')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'new')
-    .or(`deadline.is.null,deadline.gte.${today}`)
-  const reviewedCountQuery = supabase
-    .from('tenders_matched')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'reviewed')
-    .or(`deadline.is.null,deadline.gte.${today}`)
-  const submittedCountQuery = supabase
-    .from('tenders_matched')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'submitted')
-  const expiredCountQuery = supabase
-    .from('tenders_matched')
-    .select('id', { count: 'exact', head: true })
-    .or(`status.eq.expired,and(status.in.(new,reviewed),deadline.lt.${today})`)
-
-  // Queries scoped by RLS to the caller company.
-  const [
-    companyResult,
-    repResult,
-    tendersResult,
-    allCountResult,
-    newCountResult,
-    reviewedCountResult,
-    submittedCountResult,
-    expiredCountResult,
-  ] = await Promise.all([
+  // Keep the original single-page read pattern; paginate the returned set below.
+  // RLS scopes this query to the caller's company.
+  const [companyResult, repResult, tendersResult] = await Promise.all([
     supabase
       .from('companies')
       .select('id, name, plan, trial_ends_at, sectors_of_interest, industry')
@@ -131,33 +78,22 @@ export default async function DashboardPage({
       .select('id, full_name, email, phone_number')
       .limit(1)
       .maybeSingle(),
-    pageQuery,
-    allCountQuery,
-    newCountQuery,
-    reviewedCountQuery,
-    submittedCountQuery,
-    expiredCountQuery,
+    supabase
+      .from('tenders_matched')
+      .select('id, title, procuring_entity, deadline, match_score, status')
+      .order('deadline', { ascending: true, nullsFirst: false })
+      .order('match_score', { ascending: false, nullsFirst: false })
+      .limit(MAX_TENDERS),
   ])
 
   const company = companyResult.data
   const rep = repResult.data
   const tenders = tendersResult.data ?? []
-  const countResults = [
-    allCountResult,
-    newCountResult,
-    reviewedCountResult,
-    submittedCountResult,
-    expiredCountResult,
-  ]
-  const counts = {
-    all: allCountResult.count ?? 0,
-    new: newCountResult.count ?? 0,
-    reviewed: reviewedCountResult.count ?? 0,
-    submitted: submittedCountResult.count ?? 0,
-    expired: expiredCountResult.count ?? 0,
-  }
-  const loadError = tendersResult.error ?? countResults.find((result) => result.error)?.error
-  const totalPages = Math.max(1, Math.ceil(counts[tab] / PAGE_SIZE))
+  const counts = countByBucket(tenders, today)
+  const filteredTenders = filterByTab(tenders, tab, today)
+  const totalPages = Math.max(1, Math.ceil(filteredTenders.length / PAGE_SIZE))
+  const visibleTenders = filteredTenders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const loadError = tendersResult.error
   const trial = company ? trialState(company) : null
 
   if (!loadError && page > totalPages) {
@@ -228,11 +164,11 @@ export default async function DashboardPage({
             Your tenders could not be loaded just now. Reload the page, and if it
             keeps happening let us know.
           </div>
-        ) : tenders.length === 0 ? (
+        ) : filteredTenders.length === 0 ? (
           <EmptyState tab={tab} totalMatched={counts.all} />
         ) : (
           <ul className="mt-8 space-y-3">
-            {tenders.map((tender) => {
+            {visibleTenders.map((tender) => {
               const bucket = tenderBucket(tender, today)
               const urgent = bucket !== 'submitted' && isUrgent(tender.deadline, today)
 
@@ -292,9 +228,15 @@ export default async function DashboardPage({
             tab={tab}
             page={page}
             totalPages={totalPages}
-            totalCount={counts[tab]}
-            pageCount={tenders.length}
+            totalCount={filteredTenders.length}
+            pageCount={visibleTenders.length}
           />
+        ) : null}
+
+        {tenders.length === MAX_TENDERS ? (
+          <p className="mt-4 text-sm text-slate-500">
+            Showing pages from the latest {MAX_TENDERS} tenders. Contact support if you need help locating an older match.
+          </p>
         ) : null}
       </main>
     </div>

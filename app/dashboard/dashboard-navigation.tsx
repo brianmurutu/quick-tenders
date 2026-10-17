@@ -1,49 +1,18 @@
-'use client'
-
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
 
 const navigation = [
-  { label: 'Overview', href: '/dashboard', status: null },
-  { label: 'New tenders', href: '/dashboard?status=new', status: 'new' },
-  { label: 'Reviewed', href: '/dashboard?status=reviewed', status: 'reviewed' },
-  { label: 'Submitted', href: '/dashboard?status=submitted', status: 'submitted' },
-  { label: 'Expired', href: '/dashboard?status=expired', status: 'expired' },
-  { label: 'Automation', href: '/dashboard#automation', status: null },
-  { label: 'Schedule', href: '/dashboard#schedule', status: null },
-  { label: 'Subscription', href: '/upgrade', status: null },
-  { label: 'Support', href: '/contact', status: null },
-] as const
+  { label: 'Overview', href: '/dashboard' },
+  { label: 'New tenders', href: '/dashboard?status=new' },
+  { label: 'Reviewed', href: '/dashboard?status=reviewed' },
+  { label: 'Submitted', href: '/dashboard?status=submitted' },
+  { label: 'Expired', href: '/dashboard?status=expired' },
+  { label: 'Automation', href: '/dashboard#automation' },
+  { label: 'Schedule', href: '/dashboard#schedule' },
+  { label: 'Subscription', href: '/upgrade' },
+  { label: 'Support', href: '/contact' },
+]
 
 function NavigationLinks() {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const status = searchParams.get('status')
-
-  return navigation.map((item) => {
-    const isActive =
-      item.href === '/dashboard'
-        ? pathname === '/dashboard' && (!status || status === 'all')
-        : item.status
-          ? pathname === '/dashboard' && status === item.status
-          : false
-
-    return (
-      <Link
-        key={item.label}
-        href={item.href}
-        aria-current={isActive ? 'page' : undefined}
-        data-active={isActive}
-        className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-800 data-[active=true]:hover:bg-blue-50 data-[active=true]:hover:text-blue-800"
-      >
-        {item.label}
-      </Link>
-    )
-  })
-}
-
-function NavigationFallback() {
   return navigation.map((item) => (
     <Link
       key={item.label}
@@ -69,9 +38,7 @@ export function DashboardNavigation({ companyName }: { companyName: string }) {
           {companyName}
         </p>
         <nav aria-label="Dashboard navigation" className="flex flex-col gap-1">
-          <Suspense fallback={<NavigationFallback />}>
-            <NavigationLinks />
-          </Suspense>
+          <NavigationLinks />
         </nav>
       </aside>
 
@@ -80,9 +47,7 @@ export function DashboardNavigation({ companyName }: { companyName: string }) {
         className="overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 md:hidden"
       >
         <div className="flex min-w-max gap-1">
-          <Suspense fallback={<NavigationFallback />}>
-            <NavigationLinks />
-          </Suspense>
+          <NavigationLinks />
         </div>
       </nav>
     </>
