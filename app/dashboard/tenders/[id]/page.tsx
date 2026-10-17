@@ -70,6 +70,7 @@ export default async function TenderDetailPage({ params }: { params: { id: strin
   return (
     <div className="user-dashboard">
       <AppHeader
+        showLogo={false}
         right={
           <Link
             href="/dashboard"

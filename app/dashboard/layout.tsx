@@ -5,6 +5,8 @@ import { trialState } from '@/lib/trial'
 import { createClient } from '@/lib/supabase/server'
 import { noIndexMetadata } from '@/lib/seo'
 
+import { DashboardNavigation } from './dashboard-navigation'
+
 /**
  * Never prerender anything under /dashboard. The content is per representative
  * and gated on a live trial window, and declaring it here also keeps the build
@@ -41,7 +43,7 @@ export default async function DashboardLayout({
   // RLS scopes this to the caller company, so no filter is needed.
   const { data: company, error } = await supabase
     .from('companies')
-    .select('plan, trial_ends_at')
+    .select('name, plan, trial_ends_at')
     .limit(1)
     .maybeSingle()
 
@@ -53,5 +55,10 @@ export default async function DashboardLayout({
 
   if (trialState(company).expired) redirect('/upgrade?reason=expired')
 
-  return <>{children}</>
+  return (
+    <div className="min-h-screen bg-white md:pl-64">
+      <DashboardNavigation companyName={company.name ?? 'Your company'} />
+      {children}
+    </div>
+  )
 }

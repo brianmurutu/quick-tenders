@@ -1,13 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { AppHeader } from '@/components/app-header'
 import { createClient } from '@/lib/supabase/server'
 import {
   TENDER_TABS,
-  countByBucket,
   deadlinePhrase,
-  filterByTab,
   formatDate,
   formatMatchScore,
   isUrgent,
@@ -30,13 +29,7 @@ export const metadata: Metadata = {
 /** Per representative and gated on a live trial. See app/dashboard/layout.tsx. */
 export const dynamic = 'force-dynamic'
 
-/**
- * Upper bound on one page of tenders. RLS already limits this to one company, and
- * a company accumulating more than this needs pagination rather than a bigger
- * number. Fetching the whole set in one query is what lets the tab counts be
- * exact without five extra round trips.
- */
-const MAX_TENDERS = 500
+const PAGE_SIZE = 20
 
 const BUCKET_STYLES: Record<TenderBucket, string> = {
   new: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
@@ -55,14 +48,79 @@ const BUCKET_LABELS: Record<TenderBucket, string> = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { status?: string | string[] }
+  searchParams: { status?: string | string[]; page?: string | string[] }
 }) {
   const supabase = createClient()
   const tab = parseTab(searchParams.status)
+  const rawPage = Array.isArray(searchParams.page) ? searchParams.page[0] : searchParams.page
+  const requestedPage = rawPage && /^\d+$/.test(rawPage) ? Number(rawPage) : 1
+  const page =
+    Number.isSafeInteger(requestedPage) &&
+    requestedPage > 0 &&
+    requestedPage <= Math.floor(Number.MAX_SAFE_INTEGER / PAGE_SIZE)
+      ? requestedPage
+      : 1
   const today = isoToday()
 
+  const tenderSelection =
+    'id, title, procuring_entity, deadline, match_score, status'
+  let pageQuery = supabase
+    .from('tenders_matched')
+    .select(tenderSelection)
+    .order('deadline', { ascending: true, nullsFirst: false })
+    .order('match_score', { ascending: false, nullsFirst: false })
+    .order('id', { ascending: true })
+
+  if (tab === 'new') {
+    pageQuery = pageQuery
+      .eq('status', 'new')
+      .or(`deadline.is.null,deadline.gte.${today}`)
+  } else if (tab === 'reviewed') {
+    pageQuery = pageQuery
+      .eq('status', 'reviewed')
+      .or(`deadline.is.null,deadline.gte.${today}`)
+  } else if (tab === 'submitted') {
+    pageQuery = pageQuery.eq('status', 'submitted')
+  } else if (tab === 'expired') {
+    pageQuery = pageQuery.or(
+      `status.eq.expired,and(status.in.(new,reviewed),deadline.lt.${today})`,
+    )
+  }
+  pageQuery = pageQuery.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
+
+  const allCountQuery = supabase
+    .from('tenders_matched')
+    .select('id', { count: 'exact', head: true })
+  const newCountQuery = supabase
+    .from('tenders_matched')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'new')
+    .or(`deadline.is.null,deadline.gte.${today}`)
+  const reviewedCountQuery = supabase
+    .from('tenders_matched')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'reviewed')
+    .or(`deadline.is.null,deadline.gte.${today}`)
+  const submittedCountQuery = supabase
+    .from('tenders_matched')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'submitted')
+  const expiredCountQuery = supabase
+    .from('tenders_matched')
+    .select('id', { count: 'exact', head: true })
+    .or(`status.eq.expired,and(status.in.(new,reviewed),deadline.lt.${today})`)
+
   // Queries scoped by RLS to the caller company.
-  const [companyResult, repResult, tendersResult] = await Promise.all([
+  const [
+    companyResult,
+    repResult,
+    tendersResult,
+    allCountResult,
+    newCountResult,
+    reviewedCountResult,
+    submittedCountResult,
+    expiredCountResult,
+  ] = await Promise.all([
     supabase
       .from('companies')
       .select('id, name, plan, trial_ends_at, sectors_of_interest, industry')
@@ -73,26 +131,42 @@ export default async function DashboardPage({
       .select('id, full_name, email, phone_number')
       .limit(1)
       .maybeSingle(),
-    supabase
-      .from('tenders_matched')
-      .select('id, title, procuring_entity, deadline, match_score, status')
-      // Soonest deadline first. Tenders without one sort last rather than
-      // crowding the top, which is what nullsFirst: false gets us.
-      .order('deadline', { ascending: true, nullsFirst: false })
-      .order('match_score', { ascending: false, nullsFirst: false })
-      .limit(MAX_TENDERS),
+    pageQuery,
+    allCountQuery,
+    newCountQuery,
+    reviewedCountQuery,
+    submittedCountQuery,
+    expiredCountQuery,
   ])
 
   const company = companyResult.data
   const rep = repResult.data
   const tenders = tendersResult.data ?? []
-  const counts = countByBucket(tenders, today)
-  const visible = filterByTab(tenders, tab, today)
+  const countResults = [
+    allCountResult,
+    newCountResult,
+    reviewedCountResult,
+    submittedCountResult,
+    expiredCountResult,
+  ]
+  const counts = {
+    all: allCountResult.count ?? 0,
+    new: newCountResult.count ?? 0,
+    reviewed: reviewedCountResult.count ?? 0,
+    submitted: submittedCountResult.count ?? 0,
+    expired: expiredCountResult.count ?? 0,
+  }
+  const loadError = tendersResult.error ?? countResults.find((result) => result.error)?.error
+  const totalPages = Math.max(1, Math.ceil(counts[tab] / PAGE_SIZE))
   const trial = company ? trialState(company) : null
+
+  if (!loadError && page > totalPages) {
+    redirect(dashboardHref(tab, totalPages))
+  }
 
   return (
     <div className="user-dashboard">
-      <AppHeader right={company?.name ?? undefined} />
+      <AppHeader right={company?.name ?? undefined} showLogo={false} />
 
       <main className="mx-auto max-w-5xl px-6 py-12 lg:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -124,12 +198,14 @@ export default async function DashboardPage({
         </div>
 
         {/* On-Demand Interactive Custom Sector & Automation Controls */}
-        <AutomationTrigger
-          initialMatchedCount={counts.all}
-          companyProfileSectors={company?.sectors_of_interest ?? []}
-          representativePhone={rep?.phone_number}
-          representativeEmail={rep?.email}
-        />
+        <div id="automation" className="scroll-mt-24">
+          <AutomationTrigger
+            initialMatchedCount={counts.all}
+            companyProfileSectors={company?.sectors_of_interest ?? []}
+            representativePhone={rep?.phone_number}
+            representativeEmail={rep?.email}
+          />
+        </div>
 
         {/* Automated Background AI Schedule (Cron) Settings */}
         <CronScheduleCard />
@@ -144,7 +220,7 @@ export default async function DashboardPage({
           </ul>
         </nav>
 
-        {tendersResult.error ? (
+        {loadError ? (
           <div
             role="alert"
             className="mt-8 rounded-lg border border-red-300 bg-red-50 p-5 text-sm leading-relaxed text-red-900"
@@ -152,11 +228,11 @@ export default async function DashboardPage({
             Your tenders could not be loaded just now. Reload the page, and if it
             keeps happening let us know.
           </div>
-        ) : visible.length === 0 ? (
+        ) : tenders.length === 0 ? (
           <EmptyState tab={tab} totalMatched={counts.all} />
         ) : (
           <ul className="mt-8 space-y-3">
-            {visible.map((tender) => {
+            {tenders.map((tender) => {
               const bucket = tenderBucket(tender, today)
               const urgent = bucket !== 'submitted' && isUrgent(tender.deadline, today)
 
@@ -211,11 +287,14 @@ export default async function DashboardPage({
           </ul>
         )}
 
-        {counts.all >= MAX_TENDERS ? (
-          <p className="mt-8 text-sm text-slate-500">
-            Showing the first {MAX_TENDERS} tenders by deadline. Pagination is not
-            built yet.
-          </p>
+        {!loadError && counts[tab] > 0 ? (
+          <Pagination
+            tab={tab}
+            page={page}
+            totalPages={totalPages}
+            totalCount={counts[tab]}
+            pageCount={tenders.length}
+          />
         ) : null}
       </main>
     </div>
@@ -254,6 +333,79 @@ function TabLink({
         {count}
       </span>
     </Link>
+  )
+}
+
+function dashboardHref(tab: TenderTab, page: number) {
+  const params = new URLSearchParams()
+  if (tab !== 'all') params.set('status', tab)
+  if (page > 1) params.set('page', String(page))
+  const query = params.toString()
+  return query ? `/dashboard?${query}` : '/dashboard'
+}
+
+function Pagination({
+  tab,
+  page,
+  totalPages,
+  totalCount,
+  pageCount,
+}: {
+  tab: TenderTab
+  page: number
+  totalPages: number
+  totalCount: number
+  pageCount: number
+}) {
+  const firstPage = Math.max(1, Math.min(page - 2, totalPages - 4))
+  const lastPage = Math.min(totalPages, firstPage + 4)
+  const pages = Array.from({ length: lastPage - firstPage + 1 }, (_, index) => firstPage + index)
+  const firstItem = (page - 1) * PAGE_SIZE + 1
+  const lastItem = firstItem + pageCount - 1
+
+  return (
+    <div className="mt-8 flex flex-col gap-4 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-slate-600 tabular-nums">
+        Showing {firstItem}–{lastItem} of {totalCount} tenders
+      </p>
+      {totalPages > 1 ? (
+        <nav aria-label="Tender pages" className="flex flex-wrap items-center gap-1">
+          <Link
+            href={dashboardHref(tab, Math.max(1, page - 1))}
+            aria-disabled={page === 1}
+            tabIndex={page === 1 ? -1 : undefined}
+            onClick={(event) => {
+              if (page === 1) event.preventDefault()
+            }}
+            className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          >
+            Previous
+          </Link>
+          {pages.map((pageNumber) => (
+            <Link
+              key={pageNumber}
+              href={dashboardHref(tab, pageNumber)}
+              aria-current={pageNumber === page ? 'page' : undefined}
+              aria-label={`Page ${pageNumber}`}
+              className="inline-flex size-10 items-center justify-center rounded-md text-sm font-medium tabular-nums text-slate-700 hover:bg-slate-100 aria-[current=page]:bg-blue-700 aria-[current=page]:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            >
+              {pageNumber}
+            </Link>
+          ))}
+          <Link
+            href={dashboardHref(tab, Math.min(totalPages, page + 1))}
+            aria-disabled={page === totalPages}
+            tabIndex={page === totalPages ? -1 : undefined}
+            onClick={(event) => {
+              if (page === totalPages) event.preventDefault()
+            }}
+            className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          >
+            Next
+          </Link>
+        </nav>
+      ) : null}
+    </div>
   )
 }
 

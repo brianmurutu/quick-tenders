@@ -16,19 +16,20 @@ import { signOutAction } from '@/lib/auth-actions'
 export function AppHeader({
   right,
   showSignOut = true,
+  showLogo = true,
 }: {
   right?: ReactNode
   showSignOut?: boolean
+  showLogo?: boolean
 }) {
   return (
     <header className="app-header">
       <div className="app-header-inner">
-        <Link
-          href="/"
-          className="app-header-logo"
-        >
-          <Logo />
-        </Link>
+        {showLogo ? (
+          <Link href="/" className="app-header-logo">
+            <Logo />
+          </Link>
+        ) : null}
 
         <div className="app-header-actions">
           {right ? <div className="app-header-context">{right}</div> : null}
