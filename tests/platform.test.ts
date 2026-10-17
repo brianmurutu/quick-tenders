@@ -41,6 +41,7 @@ import {
 } from '@/lib/tender-status'
 import { formatTrialDate, TRIAL_DAYS, trialState } from '@/lib/trial'
 import { safeRelativePath } from '@/lib/url'
+import { signInDestination } from '@/lib/signin'
 
 /** Restores an env var to whatever it was, whether that was unset or a value. */
 function withEnv(values: Record<string, string | undefined>, run: () => void) {
@@ -275,6 +276,22 @@ describe('safeRelativePath', () => {
     assert.equal(safeRelativePath(null), '/')
     assert.equal(safeRelativePath(undefined, '/x'), '/x')
     assert.equal(safeRelativePath('', '/x'), '/x')
+  })
+})
+
+describe('signInDestination', () => {
+  it('routes administrators to the admin dashboard', () => {
+    assert.equal(signInDestination(true), '/admin')
+    assert.equal(signInDestination(true, '/dashboard'), '/admin')
+  })
+
+  it('preserves safe requested paths for non-admin users', () => {
+    assert.equal(signInDestination(false, '/dashboard/tenders/123'), '/dashboard/tenders/123')
+    assert.equal(signInDestination(false), '/dashboard')
+  })
+
+  it('rejects external redirects for non-admin users', () => {
+    assert.equal(signInDestination(false, '//example.com'), '/dashboard')
   })
 })
 

@@ -1,7 +1,46 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isCronAuthorised } from '@/lib/cron-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { formatRunSummary, runDiscovery } from '@/lib/tender-discovery'
+import type { ScrapeRunStatus } from '@/types/database'
+
+async function recordSourceHealth(
+  sources: Awaited<ReturnType<typeof runDiscovery>>['sources'],
+): Promise<void> {
+  if (sources.length === 0) return
+
+  const rows = sources.map((source) => {
+    const status: ScrapeRunStatus =
+      source.status === 'fetched'
+        ? source.discarded > 0
+          ? 'partial'
+          : 'success'
+        : source.status === 'error' && source.fetched > 0
+          ? 'partial'
+          : 'failed'
+
+    return {
+      source: source.sourceId,
+      tenders_fetched: source.fetched,
+      status,
+      error_message:
+        status === 'success'
+          ? null
+          : (
+              source.detail ??
+              (source.discarded > 0
+                ? `Runner rejected ${source.discarded} tender record(s)`
+                : `Source status: ${source.status}`)
+            ).slice(0, 2000),
+    }
+  })
+
+  const { error } = await createAdminClient().from('scrape_runs').insert(rows)
+  if (error) {
+    throw new Error(`Could not record source health: ${error.message}`)
+  }
+}
 
 /**
  * Scheduled tender discovery.
@@ -53,6 +92,17 @@ async function handle(request: NextRequest): Promise<NextResponse> {
 
     // The run log the brief asks for: per source, and per company.
     console.log(formatRunSummary(summary))
+
+    try {
+      await recordSourceHealth(summary.sources)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[discover-tenders] ${message}`)
+      return NextResponse.json(
+        { error: `Discovery ran, but source health could not be recorded: ${message}` },
+        { status: 500 },
+      )
+    }
 
     const failed =
       summary.errors.length > 0 ||

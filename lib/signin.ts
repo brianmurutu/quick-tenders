@@ -1,3 +1,5 @@
+import { safeRelativePath } from '@/lib/url'
+
 /**
  * Sign-in field definitions, validation, and the mapping from Supabase auth
  * errors to something a person can act on.
@@ -57,6 +59,10 @@ export function signInErrorMessage(raw: string): string {
   }
 
   return 'We could not sign you in just now. Try again in a moment.'
+}
+
+export function signInDestination(isAdmin: boolean, next?: string): string {
+  return isAdmin ? '/admin' : safeRelativePath(next, '/dashboard')
 }
 
 /** Messages for the ?reason= values other pages redirect here with. */

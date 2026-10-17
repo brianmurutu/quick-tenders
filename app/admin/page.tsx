@@ -120,6 +120,10 @@ async function fetchDashboardData() {
     fetchRecipientRepresentatives(supabase),
   ])
 
+  if (scrapeRunRows.error) {
+    throw new Error(`Could not load scrape-run health: ${scrapeRunRows.error.message}`)
+  }
+
   // --- Build daily buckets for trend charts ---
   const signupBucket: Record<string, number> = {}
   for (const row of companiesSignupRows.data ?? []) {
@@ -338,7 +342,7 @@ export default async function AdminDashboardPage() {
 
         {sources.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-            No scrape-run data in the last 14 days. The discovery cron may not have run yet.
+            No discovery runs are recorded in the last 14 days. The cron may not have run, or its results may not have been saved. Check the Vercel logs if this persists.
           </div>
         ) : (
           <div className="responsive-table">

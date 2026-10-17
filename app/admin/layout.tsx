@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Logo } from '@/components/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { signOutAction } from '@/lib/auth-actions'
+import { isAdminUser } from '@/lib/admin-auth'
 import { createClient } from '@/lib/supabase/server'
 import { noIndexMetadata } from '@/lib/seo'
 
@@ -54,13 +55,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   // Step 2: check the admin_users table. RLS returns a row iff is_admin().
-  const { data: adminRow } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!adminRow) {
+  if (!(await isAdminUser(supabase, user.id))) {
     notFound()
   }
 

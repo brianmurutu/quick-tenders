@@ -1,11 +1,13 @@
 'use server'
 
 import {
+  signInDestination,
   signInErrorMessage,
   validateSignIn,
   type SignInFieldErrors,
   type SignInInput,
 } from '@/lib/signin'
+import { isAdminUser } from '@/lib/admin-auth'
 import { getSiteUrl } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 import { safeRelativePath } from '@/lib/url'
@@ -45,10 +47,28 @@ export async function signIn(
     return { status: 'error', message: signInErrorMessage(error.message) }
   }
 
-  // ?next= comes from a query string, so it is attacker controllable. Anything
-  // that is not a same-origin relative path falls back to the dashboard, or this
-  // form would be an open redirect on a page people are trained to trust.
-  return { status: 'signed-in', next: safeRelativePath(next, '/dashboard') }
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    console.error('[auth] Could not verify signed-in user after password login:', userError?.message)
+    return {
+      status: 'error',
+      message: 'You signed in, but we could not confirm your account. Refresh and try again.',
+    }
+  }
+
+  try {
+    const isAdmin = await isAdminUser(supabase, user.id)
+    return { status: 'signed-in', next: signInDestination(isAdmin, next) }
+  } catch {
+    return {
+      status: 'error',
+      message: 'You signed in, but we could not verify your account access. Refresh and try again.',
+    }
+  }
 }
 
 export type GoogleAuthResult =

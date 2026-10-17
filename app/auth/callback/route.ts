@@ -2,7 +2,9 @@ import type { EmailOtpType } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { sendOnboardingEmail } from '@/lib/email/onboarding'
+import { isAdminUser } from '@/lib/admin-auth'
 import { ensureUserOnboarded } from '@/lib/onboarding-recovery'
+import { signInDestination } from '@/lib/signin'
 import { createClient } from '@/lib/supabase/server'
 import { safeRelativePath } from '@/lib/url'
 
@@ -92,6 +94,14 @@ export async function GET(request: NextRequest) {
     return back('confirmation_failed')
   }
 
+  const isAdmin = await isAdminUser(supabase, userId)
+
+  if (isAdmin) {
+    return NextResponse.redirect(
+      new URL(signInDestination(true, next), url.origin),
+    )
+  }
+
   const { data: existingRepresentative, error: repLookupError } = await supabase
     .from('representatives')
     .select('company_id')
@@ -129,6 +139,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const destination = flow === 'signin' && needsOnboarding ? '/onboarding' : next
+  const destination =
+    flow === 'signin' && needsOnboarding
+      ? '/onboarding'
+      : signInDestination(false, next)
   return NextResponse.redirect(new URL(destination, url.origin))
 }

@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { SIGN_IN_REASONS } from '@/lib/signin'
+import { isAdminUser } from '@/lib/admin-auth'
+import { signInDestination, SIGN_IN_REASONS } from '@/lib/signin'
 import { createClient } from '@/lib/supabase/server'
 import { safeRelativePath } from '@/lib/url'
 import { noIndexMetadata } from '@/lib/seo'
@@ -37,7 +38,10 @@ export default async function LoginPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (user) redirect(next)
+  if (user) {
+    const isAdmin = await isAdminUser(supabase, user.id)
+    redirect(signInDestination(isAdmin, next))
+  }
 
   const message = rawReason ? SIGN_IN_REASONS[rawReason] : undefined
 
