@@ -12,7 +12,12 @@ import type { Database } from '@/types/database'
 export function createClient() {
   const { url, anonKey } = getSupabaseEnv()
 
-  return createBrowserClient<Database>(url, anonKey)
+  // Auth callback routes exchange one-time PKCE codes explicitly. Disable URL
+  // auto-detection here so a page that handles a code itself cannot consume it
+  // once during client initialization and again in its own callback.
+  return createBrowserClient<Database>(url, anonKey, {
+    auth: { detectSessionInUrl: false },
+  })
 }
 
 export type SupabaseBrowserClient = ReturnType<typeof createClient>

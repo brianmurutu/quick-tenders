@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
 import { MIN_PASSWORD_LENGTH } from '@/lib/signup'
@@ -16,27 +16,34 @@ export function ResetPasswordForm() {
   const [confirm, setConfirm] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirm?: string }>({})
   const [formError, setFormError] = useState<string>()
+  const exchangeStarted = useRef(false)
 
-  // On mount, exchange the code token that Supabase put in the URL hash / query.
-  // Supabase's onAuthStateChange with 'PASSWORD_RECOVERY' fires when the link
-  // is opened, which gives us a session before the user types anything.
   useEffect(() => {
+    if (exchangeStarted.current) return
+    exchangeStarted.current = true
     setStatus('exchanging')
     const supabase = createClient()
-
-    // The PKCE code comes in as ?code=... — exchange it immediately.
     const code = new URLSearchParams(window.location.search).get('code')
 
     async function exchange() {
-      if (code) {
+      if (!code) {
+        setFormError('This reset link is missing or invalid. Request a new one.')
+        setStatus('error')
+        return
+      }
+
+      try {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
           setFormError('This reset link has expired or has already been used. Request a new one.')
           setStatus('error')
           return
         }
+        setStatus('ready')
+      } catch {
+        setFormError('We could not verify this reset link. Request a new one or try again.')
+        setStatus('error')
       }
-      setStatus('ready')
     }
 
     exchange()
