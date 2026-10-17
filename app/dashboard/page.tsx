@@ -312,17 +312,21 @@ function Pagination({
       </p>
       {totalPages > 1 ? (
         <nav aria-label="Tender pages" className="flex flex-wrap items-center gap-1">
-          <Link
-            href={dashboardHref(tab, Math.max(1, page - 1))}
-            aria-disabled={page === 1}
-            tabIndex={page === 1 ? -1 : undefined}
-            onClick={(event) => {
-              if (page === 1) event.preventDefault()
-            }}
-            className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-          >
-            Previous
-          </Link>
+          {page === 1 ? (
+            <span
+              aria-disabled="true"
+              className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 opacity-50"
+            >
+              Previous
+            </span>
+          ) : (
+            <Link
+              href={dashboardHref(tab, page - 1)}
+              className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            >
+              Previous
+            </Link>
+          )}
           {pages.map((pageNumber) => (
             <Link
               key={pageNumber}
@@ -334,17 +338,21 @@ function Pagination({
               {pageNumber}
             </Link>
           ))}
-          <Link
-            href={dashboardHref(tab, Math.min(totalPages, page + 1))}
-            aria-disabled={page === totalPages}
-            tabIndex={page === totalPages ? -1 : undefined}
-            onClick={(event) => {
-              if (page === totalPages) event.preventDefault()
-            }}
-            className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-          >
-            Next
-          </Link>
+          {page === totalPages ? (
+            <span
+              aria-disabled="true"
+              className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 opacity-50"
+            >
+              Next
+            </span>
+          ) : (
+            <Link
+              href={dashboardHref(tab, page + 1)}
+              className="inline-flex min-h-10 items-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            >
+              Next
+            </Link>
+          )}
         </nav>
       ) : null}
     </div>
