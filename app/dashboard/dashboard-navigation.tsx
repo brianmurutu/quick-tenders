@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
 const navigation = [
   { label: 'Overview', href: '/dashboard', status: null },
@@ -42,6 +43,18 @@ function NavigationLinks() {
   })
 }
 
+function NavigationFallback() {
+  return navigation.map((item) => (
+    <Link
+      key={item.label}
+      href={item.href}
+      className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+    >
+      {item.label}
+    </Link>
+  ))
+}
+
 export function DashboardNavigation({ companyName }: { companyName: string }) {
   return (
     <>
@@ -56,7 +69,9 @@ export function DashboardNavigation({ companyName }: { companyName: string }) {
           {companyName}
         </p>
         <nav aria-label="Dashboard navigation" className="flex flex-col gap-1">
-          <NavigationLinks />
+          <Suspense fallback={<NavigationFallback />}>
+            <NavigationLinks />
+          </Suspense>
         </nav>
       </aside>
 
@@ -65,7 +80,9 @@ export function DashboardNavigation({ companyName }: { companyName: string }) {
         className="overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 md:hidden"
       >
         <div className="flex min-w-max gap-1">
-          <NavigationLinks />
+          <Suspense fallback={<NavigationFallback />}>
+            <NavigationLinks />
+          </Suspense>
         </div>
       </nav>
     </>
