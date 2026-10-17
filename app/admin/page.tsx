@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
+import { aiConfigured } from '@/lib/ai'
+import { paystackConfigured } from '@/lib/paystack'
 import { createClient } from '@/lib/supabase/server'
 import { textSmsConfigured, textSmsConfigHint } from '@/lib/sms/textsms'
 import type { ScrapeRunStatus } from '@/types/database'
@@ -184,6 +187,11 @@ async function fetchDashboardData() {
     sources,
     recipientCompanies,
     recipientRepresentatives,
+    integrations: {
+      matching: aiConfigured(),
+      payments: paystackConfigured(),
+      sms: textSmsConfigured(),
+    },
   }
 }
 
@@ -236,10 +244,12 @@ function TrendChart({
   series,
   color,
   label,
+  className,
 }: {
   series: { date: string; count: number }[]
   color: 'blue' | 'green'
   label: string
+  className?: string
 }) {
   const points = series.map((d) => d.count)
   const firstDate = series[0]?.date ?? ''
@@ -253,9 +263,16 @@ function TrendChart({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <p className="mb-3 text-sm font-semibold text-slate-900">{label}</p>
-      <SvgSparkline points={points} width={560} height={80} color={color} strokeWidth={2} />
+    <div className={`rounded-xl border border-slate-200 bg-white p-5 ${className ?? ''}`}>
+      <p className="mb-3 text-sm font-semibold text-slate-900 text-balance">{label}</p>
+      <SvgSparkline
+        points={points}
+        width={560}
+        height={80}
+        color={color}
+        strokeWidth={2}
+        className="block h-20 w-full"
+      />
       <div className="mt-1 flex justify-between text-xs text-slate-400">
         <span>{formatDateShort(firstDate)}</span>
         <span>{formatDateShort(lastDate)}</span>
@@ -272,99 +289,136 @@ export default async function AdminDashboardPage() {
     sources,
     recipientCompanies,
     recipientRepresentatives,
+    integrations,
   } = await fetchDashboardData()
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Platform-wide metrics and pipeline health.</p>
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase text-emerald-800">Quick Tenders admin</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900 text-balance">Overview</h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-600 text-pretty">
+            Platform metrics, tender-source health, and the tools used to support companies.
+          </p>
+        </div>
+        <Link
+          href="/admin/companies"
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-forest px-4 text-sm font-semibold text-white outline-offset-2 hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-forest"
+        >
+          View users
+        </Link>
       </div>
 
       {/* Metric tiles */}
       <section aria-labelledby="metrics-heading">
-        <h2 id="metrics-heading" className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Key metrics
-        </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-          <StatTile label="Total companies" value={metrics.companiesTotal} />
-          <StatTile
-            label="On trial"
-            value={metrics.companiesOnTrial}
-            accent="blue"
-          />
-          <StatTile
-            label="Past trial"
-            value={metrics.companiesPastTrial}
-            accent="amber"
-          />
-          <StatTile
-            label="Tenders matched"
-            value={metrics.tendersTotal}
-            sub="all time"
-            accent="green"
-          />
-          <StatTile
-            label="Tenders matched"
-            value={metrics.tenders30d}
-            sub="last 30 days"
-            accent="green"
-          />
-          <StatTile label="Documents generated" value={metrics.docsTotal} />
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="metrics-heading" className="text-lg font-semibold text-slate-900 text-balance">
+            Platform snapshot
+          </h2>
+          <span className="text-xs text-slate-500">Live account and pipeline totals</span>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12">
+          <div className="xl:col-span-2">
+            <StatTile label="Total companies" value={metrics.companiesTotal} />
+          </div>
+          <div className="xl:col-span-2">
+            <StatTile label="On trial" value={metrics.companiesOnTrial} accent="blue" />
+          </div>
+          <div className="xl:col-span-2">
+            <StatTile label="Past trial" value={metrics.companiesPastTrial} accent="amber" />
+          </div>
+          <div className="xl:col-span-2">
+            <StatTile
+              label="Tenders matched"
+              value={metrics.tendersTotal}
+              sub="All time"
+              accent="green"
+            />
+          </div>
+          <div className="xl:col-span-2">
+            <StatTile
+              label="Tenders matched"
+              value={metrics.tenders30d}
+              sub="Last 30 days"
+              accent="green"
+            />
+          </div>
+          <div className="xl:col-span-2">
+            <StatTile label="Documents generated" value={metrics.docsTotal} />
+          </div>
         </div>
       </section>
 
-      {/* Auth recovery */}
-      <AdminResendAuthCard />
-
-      {/* Email actions */}
-      <AdminEmailActionsCard
-        companies={recipientCompanies}
-        representatives={recipientRepresentatives}
-        smsConfigured={textSmsConfigured()}
-        smsConfigurationHint={textSmsConfigHint()}
-      />
-
       {/* Trend charts */}
-      <section aria-labelledby="trends-heading" className="space-y-4">
-        <h2 id="trends-heading" className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Trends – last 90 days
-        </h2>
-        <TrendChart series={signupSeries} color="blue" label="New company sign-ups" />
-        <TrendChart series={tenderSeries} color="green" label="Tenders matched" />
+      <section
+        id="analytics"
+        aria-labelledby="trends-heading"
+        className="grid grid-cols-1 gap-4 lg:grid-cols-12"
+      >
+        <div className="lg:col-span-12">
+          <h2
+            id="trends-heading"
+            className="text-lg font-semibold text-slate-900 text-balance"
+          >
+            Activity trends
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Daily activity over the last 90 days.
+          </p>
+        </div>
+        <TrendChart
+          series={signupSeries}
+          color="blue"
+          label="New company sign-ups"
+          className="min-w-0 lg:col-span-6"
+        />
+        <TrendChart
+          series={tenderSeries}
+          color="green"
+          label="Tenders matched"
+          className="min-w-0 lg:col-span-6"
+        />
       </section>
 
       {/* Source health panel */}
-      <section aria-labelledby="health-heading">
-        <h2 id="health-heading" className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Source health – last 14 days
-        </h2>
+      <section id="sources" aria-labelledby="health-heading" className="min-w-0">
+        <div className="mb-4">
+          <h2 id="health-heading" className="text-lg font-semibold text-slate-900 text-balance">
+            Tender-source health
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Discovery results from the last 14 days.
+          </p>
+        </div>
 
         {sources.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-            No discovery runs are recorded in the last 14 days. The cron may not have run, or its results may not have been saved. Check the Vercel logs if this persists.
+          <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            No discovery runs are recorded in the last 14 days. The cron may not
+            have run, or its results may not have been saved. Check the Vercel
+            logs if this persists.
           </div>
         ) : (
-          <div className="responsive-table">
+          <div className="responsive-table rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="py-3 pr-4 pl-5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="py-3 pr-4 pl-5 text-xs font-semibold uppercase text-slate-500">
                     Source
                   </th>
-                  <th className="py-3 pr-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 pr-4 text-xs font-semibold uppercase text-slate-500">
                     Last status
                   </th>
-                  <th className="py-3 pr-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 pr-4 text-xs font-semibold uppercase text-slate-500">
                     Fetched
                   </th>
-                  <th className="py-3 pr-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 pr-4 text-xs font-semibold uppercase text-slate-500">
                     Last run
                   </th>
-                  <th className="py-3 pr-6 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 pr-6 text-xs font-semibold uppercase text-slate-500">
                     Last 10 runs
                   </th>
-                  <th className="py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 text-xs font-semibold uppercase text-slate-500">
                     7-day success
                   </th>
                 </tr>
@@ -383,6 +437,77 @@ export default async function AdminDashboardPage() {
           </div>
         )}
       </section>
+
+      <section id="settings" aria-labelledby="settings-heading">
+        <div className="mb-4">
+          <h2
+            id="settings-heading"
+            className="text-lg font-semibold text-slate-900 text-balance"
+          >
+            Settings and integrations
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Configuration status only. Credentials are never shown here.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <IntegrationStatus label="Tender matching" ready={integrations.matching} />
+          <IntegrationStatus label="Payments" ready={integrations.payments} />
+          <IntegrationStatus label="SMS" ready={integrations.sms} />
+        </div>
+      </section>
+
+      <section id="support" aria-labelledby="support-heading" className="space-y-4">
+        <div>
+          <h2
+            id="support-heading"
+            className="text-lg font-semibold text-slate-900 text-balance"
+          >
+            Support and communications
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Help customers regain access or contact the Quick Tenders support team.
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-semibold text-slate-900">Contact support</p>
+          <p className="mt-1 text-sm text-slate-600 text-pretty">
+            For customer or platform issues, email the support team.
+          </p>
+          <a
+            href="mailto:support@quicktenders.co.ke"
+            className="mt-3 inline-flex min-h-10 items-center rounded-md font-semibold text-emerald-800 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+          >
+            support@quicktenders.co.ke
+          </a>
+        </div>
+        <AdminResendAuthCard />
+        <AdminEmailActionsCard
+          companies={recipientCompanies}
+          representatives={recipientRepresentatives}
+          smsConfigured={integrations.sms}
+          smsConfigurationHint={textSmsConfigHint()}
+        />
+      </section>
+    </div>
+  )
+}
+
+function IntegrationStatus({ label, ready }: { label: string; ready: boolean }) {
+  return (
+    <div className="flex min-h-24 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div>
+        <p className="text-sm font-semibold text-slate-900">{label}</p>
+        <p className="mt-1 text-xs text-slate-500">
+          {ready ? 'Configured' : 'Configuration required'}
+        </p>
+      </div>
+      <span
+        data-ready={ready}
+        className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 data-[ready=true]:bg-emerald-50 data-[ready=true]:text-emerald-900"
+      >
+        {ready ? 'Ready' : 'Needs setup'}
+      </span>
     </div>
   )
 }

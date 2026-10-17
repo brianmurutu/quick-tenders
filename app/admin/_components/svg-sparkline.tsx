@@ -14,12 +14,14 @@ export function SvgSparkline({
   height = 32,
   color = 'blue',
   strokeWidth = 1.5,
+  className,
 }: {
   points: number[]
   width?: number
   height?: number
   color?: 'blue' | 'green' | 'amber' | 'red' | 'slate'
   strokeWidth?: number
+  className?: string
 }) {
   if (points.length < 2) {
     // Not enough data for a line; render a muted placeholder.
@@ -28,7 +30,7 @@ export function SvgSparkline({
         width={width}
         height={height}
         aria-hidden="true"
-        className="shrink-0"
+        className={className ?? 'shrink-0'}
         viewBox={`0 0 ${width} ${height}`}
       >
         <line
@@ -85,7 +87,7 @@ export function SvgSparkline({
       width={width}
       height={height}
       aria-hidden="true"
-      className="shrink-0"
+      className={className ?? 'shrink-0'}
       viewBox={`0 0 ${width} ${height}`}
     >
       {/* Gradient area under the line */}
